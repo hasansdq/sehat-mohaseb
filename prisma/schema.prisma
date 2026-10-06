@@ -1,0 +1,325 @@
+// صحت محاسب — Prisma schema (modular, scalable)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Users & Auth =====
+model User {
+  id           String   @id @default(cuid())
+  mobile       String   @unique // 09xxxxxxxxx normalized
+  nationalCode String?
+  fullName     String?
+  email        String?
+  passwordHash String
+  role        Role     @default(USER)
+  status       UserStatus @default(ACTIVE)
+  avatarUrl     String?
+  jobTitle     String?
+  company      String?
+  lastLoginAt  DateTime?
+  lastLoginIp  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  consultations ConsultationRequest[]
+  customPackages CustomPackageRequest[]
+  aiMessages    AiMessage[]
+  refreshTokens RefreshToken[]
+  activityLogs  ActivityLog[]
+  articleComments ArticleComment[]
+
+  @@index([role])
+  @@index([status])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ===== Content: Articles =====
+model Article {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  excerpt     String?
+  content     String   // markdown / html
+  coverUrl    String?
+  category    String?
+  tags        String?  // comma separated
+  authorName  String?
+  status      ArticleStatus @default(DRAFT)
+  featured    Boolean  @default(false)
+  views       Int      @default(0)
+  readingMinutes Int?
+  seoTitle    String?
+  seoDescription String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  publishedAt DateTime?
+  comments    ArticleComment[]
+
+  @@index([status])
+  @@index([category])
+  @@index([publishedAt])
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model ArticleComment {
+  id        String   @id @default(cuid())
+  articleId String
+  userId    String?
+  name      String
+  email     String?
+  body      String
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([articleId])
+  @@index([approved])
+}
+
+// ===== Services =====
+model Service {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  shortDesc   String?
+  description String?
+  icon        String?  // lucide icon name
+  image       String?
+  order       Int      @default(0)
+  featured    Boolean  @default(false)
+  priceLabel  String?  // "از ۲.۵ میلیون تومان"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([order])
+}
+
+// ===== Business Packages =====
+model BusinessPackage {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  software    String?  // سپیدار / دشت
+  category    String?  // شرکتی / فروشگاهی / آموزشی
+  shortDesc   String?
+  description String?
+  features    String?  // newline separated
+  price       Int?     // toman
+  oldPrice    Int?
+  badge       String?  // پرفروش‌ترین / محبوب
+  popular     Boolean  @default(false)
+  order       Int      @default(0)
+  icon        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([order])
+  @@index([category])
+}
+
+// ===== Landing / Site content (key-value content blocks) =====
+model LandingBlock {
+  id        String   @id @default(cuid())
+  section   String   // hero, about, stats, why, process, cta, faq ...
+  key       String   // sub-key
+  value     String   // text / html
+  order     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([section, key])
+  @@index([section])
+}
+
+model Faq {
+  id       String @id @default(cuid())
+  question String
+  answer   String
+  order    Int    @default(0)
+  createdAt DateTime @default(now())
+}
+
+model TeamMember {
+  id        String  @id @default(cuid())
+  name      String
+  role      String
+  bio       String?
+  photoUrl  String?
+  linkedin String?
+  email     String?
+  order     Int     @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Testimonial {
+  id        String  @id @default(cuid())
+  name      String
+  company   String?
+  role      String?
+  message   String
+  rating    Int     @default(5)
+  avatarUrl String?
+  order     Int     @default(0)
+  createdAt DateTime @default(now())
+}
+
+// ===== Settings (site-wide key/value) =====
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  group String @default("general") // general, contact, social, ai, security, backup, seo
+  updatedAt DateTime @updatedAt
+
+  @@index([group])
+}
+
+// ===== Requests from chatbot / site =====
+model ConsultationRequest {
+  id         String   @id @default(cuid())
+  userId     String?
+  name       String
+  mobile     String
+  topic      String?
+  businessType String?
+  message    String
+  preferredTime String?
+  status     RequestStatus @default(NEW)
+  source     String? // chatbot / form
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model CustomPackageRequest {
+  id           String   @id @default(cuid())
+  userId       String?
+  businessName String?
+  businessType String?
+  employeeCount Int?
+  monthlyTransactions Int?
+  needsSoftware Boolean @default(true)
+  needsTraining Boolean @default(false)
+  needsTax      Boolean @default(true)
+  needsPayroll  Boolean @default(false)
+  budget       String?
+  notes        String?
+  suggestedPlan String?
+  aiSummary    String?
+  status       RequestStatus @default(NEW)
+  contactName  String?
+  contactMobile String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
+
+enum RequestStatus {
+  NEW
+  CONTACTED
+  DONE
+  CANCELLED
+}
+
+// ===== AI Chat =====
+model AiConversation {
+  id        String   @id @default(cuid())
+  userId    String?
+  guestId   String?
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  AiMessage[]
+
+  @@index([userId])
+  @@index([guestId])
+}
+
+model AiMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String?
+  role           String   // user / assistant / system
+  content        String
+  meta           String?  // JSON string: plan suggestions etc.
+  createdAt      DateTime @default(now())
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([userId])
+}
+
+// ===== Security / Logs =====
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  actor     String?  // username / mobile
+  action    String   // login_success, login_failed, update_setting, ...
+  target    String?
+  ip        String?
+  userAgent String?
+  meta      String?  // JSON
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model BackupRecord {
+  id        String   @id @default(cuid())
+  name      String
+  size      Int?
+  kind      String   @default("manual") // manual / auto
+  path      String?
+  meta      String?
+  createdAt DateTime @default(now())
+}
+
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  mobile    String?
+  createdAt DateTime @default(now())
+}

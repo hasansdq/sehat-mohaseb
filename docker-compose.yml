@@ -1,0 +1,87 @@
+# ============================================================
+# صحت محاسب — Docker Compose (Production v3 — fully fixed)
+# ============================================================
+
+services:
+  sehat-mohaseb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sehat-mohaseb
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:3001:3000"
+
+    env_file:
+      - .env.docker
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_TELEMETRY_DISABLED=1
+
+    volumes:
+      - sehat-db:/app/db
+      - sehat-uploads:/app/public/uploads
+      - sehat-backups:/app/db/backups
+      # z-ai-web-dev-sdk config — mount as read-only at /app/.z-ai-config
+      # Create this file on the VPS host:
+      #   mkdir -p secrets
+      #   echo '{"baseUrl":"https://api.z.ai","apiKey":"your-key"}' > secrets/.z-ai-config
+      - type: bind
+        source: ./secrets/.z-ai-config
+        target: /app/.z-ai-config
+        read_only: true
+        bind:
+          create_host_path: false
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/public/site"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.5"
+        reservations:
+          memory: 256M
+          cpus: "0.5"
+
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks:
+      - sehat-net
+
+volumes:
+  sehat-db:
+    driver: local
+  sehat-uploads:
+    driver: local
+  sehat-backups:
+    driver: local
+
+networks:
+  sehat-net:
+    driver: bridge
+    internal: false

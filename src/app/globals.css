@@ -1,0 +1,407 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* Yekan Bakh is the ONE font for the entire system (site + admin).
+     Defined here so Tailwind's `font-sans` / `font-mono` utilities resolve
+     to Yekan Bakh everywhere, including inside shadcn/ui components. */
+  --font-sans: "Yekan Bakh", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  --font-mono: "Yekan Bakh", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  --font-yekan: "Yekan Bakh", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ===== Yekan Bakh Variable Font (Persian) ===== */
+@font-face {
+  font-family: "Yekan Bakh";
+  src: url("/YekanBakhFaNum-VF.woff") format("woff-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* The single font variable — referenced by Tailwind utilities and any
+     component. Guarantees Yekan Bakh is applied site-wide. */
+  --font-yekan: "Yekan Bakh", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  --radius: 0.85rem;
+  /* Brand: Emerald (trust/growth/finance) + Gold accent (premium) */
+  --background: oklch(0.99 0.004 145);
+  --foreground: oklch(0.18 0.02 160);
+  --card: oklch(1 0.003 145);
+  --card-foreground: oklch(0.18 0.02 160);
+  --popover: oklch(0.995 0.004 145);
+  --popover-foreground: oklch(0.18 0.02 160);
+  --primary: oklch(0.52 0.13 165);
+  --primary-foreground: oklch(0.99 0.01 145);
+  --secondary: oklch(0.96 0.02 165);
+  --secondary-foreground: oklch(0.3 0.05 165);
+  --muted: oklch(0.965 0.012 150);
+  --muted-foreground: oklch(0.5 0.03 160);
+  --accent: oklch(0.78 0.14 75);
+  --accent-foreground: oklch(0.22 0.04 75);
+  --destructive: oklch(0.58 0.22 25);
+  --destructive-foreground: oklch(0.99 0.01 145);
+  --border: oklch(0.9 0.02 160);
+  --input: oklch(0.92 0.015 160);
+  --ring: oklch(0.52 0.13 165);
+  --chart-1: oklch(0.55 0.13 165);
+  --chart-2: oklch(0.7 0.14 75);
+  --chart-3: oklch(0.6 0.1 200);
+  --chart-4: oklch(0.65 0.18 30);
+  --chart-5: oklch(0.5 0.08 260);
+  --sidebar: oklch(0.985 0.006 155);
+  --sidebar-foreground: oklch(0.2 0.02 160);
+  --sidebar-primary: oklch(0.52 0.13 165);
+  --sidebar-primary-foreground: oklch(0.99 0.01 145);
+  --sidebar-accent: oklch(0.95 0.03 75);
+  --sidebar-accent-foreground: oklch(0.25 0.05 75);
+  --sidebar-border: oklch(0.9 0.02 160);
+  --sidebar-ring: oklch(0.52 0.13 165);
+  /* Brand extras */
+  --brand: oklch(0.52 0.13 165);
+  --brand-2: oklch(0.42 0.1 175);
+  --gold: oklch(0.78 0.14 75);
+  --gold-foreground: oklch(0.24 0.05 75);
+  --glass: oklch(1 0.003 145 / 0.65);
+  --glass-border: oklch(1 0 0 / 0.5);
+}
+
+.dark {
+  --background: oklch(0.16 0.015 165);
+  --foreground: oklch(0.97 0.01 150);
+  --card: oklch(0.21 0.02 165);
+  --card-foreground: oklch(0.97 0.01 150);
+  --popover: oklch(0.21 0.02 165);
+  --popover-foreground: oklch(0.97 0.01 150);
+  --primary: oklch(0.7 0.14 165);
+  --primary-foreground: oklch(0.16 0.02 165);
+  --secondary: oklch(0.27 0.025 165);
+  --secondary-foreground: oklch(0.95 0.01 150);
+  --muted: oklch(0.25 0.02 165);
+  --muted-foreground: oklch(0.72 0.02 155);
+  --accent: oklch(0.8 0.15 80);
+  --accent-foreground: oklch(0.18 0.04 80);
+  --destructive: oklch(0.7 0.2 25);
+  --destructive-foreground: oklch(0.98 0.01 145);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.7 0.14 165);
+  --chart-1: oklch(0.7 0.14 165);
+  --chart-2: oklch(0.8 0.15 80);
+  --chart-3: oklch(0.65 0.12 200);
+  --chart-4: oklch(0.7 0.18 30);
+  --chart-5: oklch(0.6 0.1 260);
+  --sidebar: oklch(0.19 0.02 165);
+  --sidebar-foreground: oklch(0.97 0.01 150);
+  --sidebar-primary: oklch(0.7 0.14 165);
+  --sidebar-primary-foreground: oklch(0.16 0.02 165);
+  --sidebar-accent: oklch(0.28 0.04 80);
+  --sidebar-accent-foreground: oklch(0.95 0.02 80);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.7 0.14 165);
+  --brand: oklch(0.7 0.14 165);
+  --brand-2: oklch(0.6 0.1 175);
+  --gold: oklch(0.8 0.15 80);
+  --gold-foreground: oklch(0.18 0.04 80);
+  --glass: oklch(0.2 0.02 165 / 0.55);
+  --glass-border: oklch(1 0 0 / 0.14);
+}
+
+@layer base {
+  /* Force Yekan Bakh on EVERY element — including form controls (input,
+     textarea, select, button) that don't inherit font in some browsers,
+     and shadcn/radix components that may set their own font. This is the
+     single source of truth for the whole system (site + admin). */
+  *,
+  *::before,
+  *::after {
+    @apply border-border outline-ring/50;
+    font-family: "Yekan Bakh", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif !important;
+  }
+  html {
+    scroll-behavior: smooth;
+    /* Smooth-touch text size adjustment off (we control sizes responsively) */
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Yekan Bakh", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif !important;
+    font-feature-settings: "ss01", "ss02";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Respect iOS safe areas (notch/home indicator) via margin so body width
+       stays = viewport width (no horizontal padding → no overflow). */
+    margin-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+  }
+  /* Horizontal-overflow protection lives on the .site-shell wrapper (which
+     also sets overflow-x: hidden). Keeping it OFF html/body avoids the
+     spec quirk where `overflow-x: hidden` on html forces overflow-y to
+     compute to `auto` on the wrong element, and keeps vertical scroll
+     handled purely by the document scroll container (html). */
+  .site-shell {
+    overflow-x: hidden;
+  }
+  /* Form controls must explicitly inherit (some browsers default to system UI font) */
+  input, textarea, select, button {
+    font-family: inherit !important;
+  }
+  /* Code/pre — keep Yekan Bakh for Persian numerals; tabular nums for alignment */
+  code, pre, kbd, samp {
+    font-family: "Yekan Bakh", system-ui, sans-serif !important;
+  }
+  /* Persian numerals friendly + better heading weight */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* ===== Utilities ===== */
+@layer utilities {
+  /* Responsive container: full-width on mobile with px-4 gutters, capped + centered
+     on larger screens. Prevents content from being too wide on desktop while
+     keeping generous gutters on small phones. */
+  .container {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) { .container { padding-inline: 1.5rem; } }
+  @media (min-width: 768px) { .container { padding-inline: 2rem; max-width: 80rem; } }
+  @media (min-width: 1024px) { .container { max-width: 84rem; } }
+  @media (min-width: 1280px) { .container { max-width: 88rem; } }
+
+  .font-display {
+    font-family: "Yekan Bakh", system-ui, sans-serif;
+    font-weight: 800;
+  }
+  /* Fractional sizing helpers (w-5.5 / h-5.5) for precise small UI bits */
+  .w-5\.5 { width: 1.375rem; }
+  .h-5\.5 { height: 1.375rem; }
+  .w-4\.5 { width: 1.125rem; }
+  .h-4\.5 { height: 1.125rem; }
+  /* Mobile-only hidden helper (visible on sm+) */
+  .hidden-xs { display: none; }
+  @media (min-width: 640px) { .hidden-xs { display: revert; } }
+  /* Xs-only visible helper */
+  .xs-only { display: revert; }
+  @media (min-width: 640px) { .xs-only { display: none; } }
+  .glass {
+    background: var(--glass);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid var(--glass-border);
+  }
+  .glass-strong {
+    background: color-mix(in oklab, var(--card) 78%, transparent);
+    backdrop-filter: blur(22px) saturate(150%);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    border: 1px solid var(--glass-border);
+  }
+  .text-gradient-brand {
+    background-image: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 45%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-gradient-brand {
+    background-image: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%);
+  }
+  .bg-gradient-gold {
+    background-image: linear-gradient(135deg, var(--gold) 0%, color-mix(in oklab, var(--gold) 70%, var(--brand)) 100%);
+  }
+  .shadow-glow {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--brand) 30%, transparent), 0 12px 40px -8px color-mix(in oklab, var(--brand) 45%, transparent);
+  }
+  .shadow-glow-gold {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--gold) 30%, transparent), 0 14px 44px -10px color-mix(in oklab, var(--gold) 45%, transparent);
+  }
+  .perspective-1000 { perspective: 1000px; }
+  .perspective-2000 { perspective: 2000px; }
+  .preserve-3d { transform-style: preserve-3d; }
+  .backface-hidden { backface-visibility: hidden; }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+    border-radius: 999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--brand);
+  }
+  .animate-float {
+    animation: float-y 6s ease-in-out infinite;
+  }
+  .animate-float-slow {
+    animation: float-y 9s ease-in-out infinite;
+  }
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--brand) 25%, transparent), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2.5s linear infinite;
+  }
+  .animate-grid-pan {
+    background-size: 40px 40px;
+    animation: grid-pan 22s linear infinite;
+  }
+  .animate-aurora {
+    background-size: 200% 200%;
+    animation: aurora-pan 18s ease-in-out infinite;
+  }
+  .animate-spin-slow {
+    animation: spin-slow 24s linear infinite;
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 3s ease-in-out infinite;
+  }
+  .animate-marquee {
+    animation: marquee 32s linear infinite;
+  }
+  .dot-pattern {
+    background-image: radial-gradient(circle, color-mix(in oklab, var(--foreground) 18%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  .dot-grid-fade {
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 80%);
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 80%);
+  }
+  .conic-glow {
+    background: conic-gradient(from 0deg at 50% 50%, transparent, color-mix(in oklab, var(--brand) 30%, transparent), transparent, color-mix(in oklab, var(--gold) 25%, transparent), transparent);
+  }
+  .ring-progress {
+    transform: rotate(-90deg);
+  }
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  }
+
+  /* ===================================================================
+     Mobile performance optimization
+     ===================================================================
+     On mobile (< sm = < 640px), GPU-heavy decorative effects are reduced or
+     removed to keep the hero smooth. Desktop look is UNCHANGED because all
+     these rules only apply under max-width:639px.
+
+     Strategy:
+     - .heavy-only-md  : hidden on phones, shown on sm+
+     - .blur-soft-md   : heavy blur values reduced on phones (cheaper to paint)
+     - .anim-pause-xs  : animations paused on phones (no continuous repaint)
+     - .no-3d-xs       : transform: none !important (kills perspective/translateZ)
+     - .mobile-only    : hidden on sm+, shown only on phones (simple replacement)
+     =================================================================== */
+  .heavy-only-md { display: none; }
+  @media (min-width: 640px) { .heavy-only-md { display: revert; } }
+
+  .mobile-only { display: revert; }
+  @media (min-width: 640px) { .mobile-only { display: none; } }
+
+  /* Pause continuous animations on phones to save battery + reduce repaint */
+  .anim-pause-xs,
+  .anim-pause-xs * { animation-play-state: paused !important; }
+  @media (min-width: 640px) { .anim-pause-xs, .anim-pause-xs * { animation-play-state: running !important; } }
+
+  /* Disable 3D perspective + translateZ on phones (expensive on weak GPUs) */
+  .no-3d-xs { transform: none !important; }
+  @media (min-width: 640px) { .no-3d-xs { transform: revert !important; } }
+
+  /* Soften heavy blurs on phones (blur is the most expensive filter on mobile) */
+  .blur-soft-xs { filter: blur(24px) !important; }
+  @media (min-width: 640px) { .blur-soft-xs { filter: revert !important; } }
+
+  /* Reduce backdrop-blur on phones (also expensive) */
+  .glass-xs { backdrop-filter: blur(10px) saturate(120%) !important; -webkit-backdrop-filter: blur(10px) saturate(120%) !important; }
+  @media (min-width: 640px) { .glass-xs { backdrop-filter: revert !important; -webkit-backdrop-filter: revert !important; } }
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes grid-pan {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 40px; }
+}
+@keyframes aurora-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  70%, 100% { transform: scale(1.6); opacity: 0; }
+}
+.pulse-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in oklab, var(--brand) 50%, transparent);
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+/* Selection */
+::selection {
+  background: color-mix(in oklab, var(--brand) 30%, transparent);
+  color: var(--foreground);
+}
+
+/* RTL number fix: keep Latin digits in inputs readable */
+input, textarea { font-variant-numeric: tabular-nums; }

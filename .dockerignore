@@ -1,0 +1,82 @@
+# ============================================================
+# .dockerignore — files NOT copied into the Docker image
+# Reduces image size + speeds up builds + prevents secrets leaking
+# ============================================================
+
+# Dependencies
+node_modules
+**/node_modules
+
+# Next.js build output
+.next
+out
+
+# Build artifacts
+dist
+build
+
+# Database files (will be mounted as volume, not baked into image)
+db/
+*.db
+*.db-journal
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Env files (use runtime env vars, not baked-in)
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Logs
+*.log
+dev.log
+server.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (not needed inside image)
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+
+# Documentation
+*.md
+docs/
+
+# Tests
+tests/
+coverage/
+
+# Examples / skills (not part of production app)
+examples/
+skills/
+.zscripts/
+
+# Download / upload temp dirs
+download/
+upload/
+
+# Misc project artifacts
+.tsbuildinfo
+
+# Secrets must never enter the build context
+.env*
+**/.env*
+.z-ai-config*
+**/.z-ai-config*
+secrets/
+backups/
+*.tsbuildinfo
