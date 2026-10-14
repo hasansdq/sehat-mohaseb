@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, Loader2, Save, Globe, Phone, Share2, Search as SeoIcon, Sparkles, Shield, UserCog, Database } from "lucide-react";
+import { Settings, Loader2, Save, Globe, Phone, Share2, Search as SeoIcon, Sparkles, Shield, UserCog, Database, Palette, Zap, CheckCircle2, XCircle, Loader } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { PageHeader, AdminCard, Input, Textarea } from "@/components/admin/ui";
@@ -10,10 +10,12 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { id: "general", label: "عمومی", icon: Globe },
+  { id: "theme", label: "رنگ‌بندی و تم", icon: Palette },
   { id: "contact", label: "تماس", icon: Phone },
   { id: "social", label: "شبکه‌های اجتماعی", icon: Share2 },
   { id: "seo", label: "سئو", icon: SeoIcon },
   { id: "ai", label: "هوش مصنوعی", icon: Sparkles },
+  { id: "openai", label: "اتصال OpenAI", icon: Zap },
   { id: "security", label: "امنیت", icon: Shield },
   { id: "admin", label: "ورود مدیر", icon: UserCog },
   { id: "backup", label: "پشتیبان", icon: Database },
@@ -27,9 +29,11 @@ const KEY_LABELS: Record<string, { label: string; type?: "text" | "textarea" | "
   "site.tagline": { label: "شعار", group: "general" },
   "site.description": { label: "توضیحات کوتاه", group: "general", type: "textarea" },
   "site.logoUrl": { label: "آدرس لوگو", group: "general", ltr: true },
-  "site.brandColor": { label: "رنگ برند (HEX)", group: "general", ltr: true },
   "site.announcement": { label: "پیام اعلان", group: "general", hint: "نوار اعلان بالای سایت" },
   "site.announcementActive": { label: "فعال‌سازی اعلان", group: "general", type: "boolean" },
+  // theme (color picker)
+  "site.brandColor": { label: "رنگ اصلی برند", group: "theme", ltr: true, hint: "رنگ غالب سایت (دکمه‌ها، گرادینت‌ها، آیکن‌ها)" },
+  "site.accentColor": { label: "رنگ طلایی/تاکیدی", group: "theme", ltr: true, hint: "رنگ ثانویه برای تاکید و بَج‌ها" },
   // contact
   "contact.phone": { label: "تلفن", group: "contact", ltr: true },
   "contact.phone2": { label: "تلفن دوم", group: "contact", ltr: true },
@@ -55,6 +59,13 @@ const KEY_LABELS: Record<string, { label: string; type?: "text" | "textarea" | "
   "ai.greeting": { label: "پیام خوش‌آمدگویی", group: "ai", type: "textarea" },
   "ai.enablePackageBuilder": { label: "ساخت پک اختصاصی", group: "ai", type: "boolean" },
   "ai.enableConsultation": { label: "رزرو مشاوره", group: "ai", type: "boolean" },
+  // openai connection
+  "openai.enabled": { label: "استفاده از OpenAI به‌جای SDK پیش‌فرض", group: "openai", type: "boolean" },
+  "openai.apiKey": { label: "کلید API OpenAI", group: "openai", ltr: true, hint: "مثلاً sk-proj-xxxxxx — از پنل OpenAI دریافت کنید" },
+  "openai.baseUrl": { label: "آدرس API (اختیاری)", group: "openai", ltr: true, hint: "پیش‌فرض: https://api.openai.com/v1 — برای پراکسی قابل تغییر" },
+  "openai.model": { label: "مدل انتخابی", group: "openai", ltr: true, hint: "از لیست مدل‌ها انتخاب کنید (بعد از تست اتصال)" },
+  "openai.temperature": { label: "دما (0-2)", group: "openai", ltr: true },
+  "openai.maxTokens": { label: "حداکثر توکن پاسخ", group: "openai", ltr: true },
   // security
   "security.maxLoginAttempts": { label: "حداکثر تلاش ورود", group: "security", ltr: true },
   "security.lockMinutes": { label: "مدت قفل (دقیقه)", group: "security", ltr: true },
@@ -188,7 +199,7 @@ function AdminCredentials() {
     if (r.ok) toast.success("نام کاربری تغییر کرد."); else toast.error(r.error);
   };
   const changePassword = async () => {
-    if (newPw.length < 6) { toast.error("رمز جدید کوتاه است."); return; }
+    if (newPw.length < 12) { toast.error("رمز جدید کوتاه است."); return; }
     setSavingP(true);
     const r = await api("/api/admin/settings", { method: "PATCH", body: JSON.stringify({ action: "changePassword", currentPassword: currentPw, newPassword: newPw }) });
     setSavingP(false);
@@ -208,7 +219,7 @@ function AdminCredentials() {
         <div className="flex items-center gap-2 pb-3 border-b border-border mb-4"><Shield className="h-5 w-5 text-primary" /><h3 className="font-bold text-foreground">تغییر رمز عبور مدیر</h3></div>
         <div className="space-y-3">
           <Input label="رمز عبور فعلی" value={currentPw} onChange={(v) => setCurrentPw(v)} type="password" ltr />
-          <Input label="رمز عبور جدید" value={newPw} onChange={(v) => setNewPw(v)} type="password" ltr hint="حداقل ۶ کاراکتر" />
+          <Input label="رمز عبور جدید" value={newPw} onChange={(v) => setNewPw(v)} type="password" ltr hint="حداقل ۱۲ کاراکتر" />
           <Button onClick={changePassword} disabled={savingP} className="bg-gradient-brand text-white shadow-glow">{savingP ? <Loader2 className="h-4 w-4 animate-spin" /> : "تغییر رمز عبور"}</Button>
         </div>
       </div>

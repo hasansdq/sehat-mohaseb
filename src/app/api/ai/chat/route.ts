@@ -74,17 +74,22 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // build history (last 12 messages + system prompt)
+    // build history: take the LATEST 24 messages (not the first 24).
+    // Use descending order to get the most recent, then reverse to
+    // chronological order for the AI context.
     const dbMessages = await db.aiMessage.findMany({
       where: { conversationId: conversation.id },
       orderBy: { createdAt: "desc" },
       take: 24,
       select: { role: true, content: true },
     });
+    dbMessages.reverse(); // back to chronological (oldest → newest)
+
+    // System prompt is sent as a "system" role message (not "assistant")
+    // so the model understands it as instructions, not a previous response.
     const systemPrompt = await buildSystemPrompt();
     const history: AIMessage[] = [
-      { role: "system" as any, content: systemPrompt },
-      ...dbMessages.reverse().map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      ...dbMessages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
     ];
 
     let aiText: string;

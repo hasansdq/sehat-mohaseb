@@ -20,6 +20,7 @@ const NAV = [
     { href: "/sehat-ad/articles", label: "مقالات", icon: FileText },
     { href: "/sehat-ad/services", label: "خدمات", icon: Wrench },
     { href: "/sehat-ad/packages", label: "بسته‌ها", icon: Package },
+    { href: "/sehat-ad/nav-items", label: "منوی هدر", icon: Menu },
     { href: "/sehat-ad/faqs", label: "سوالات متداول", icon: HelpCircle },
     { href: "/sehat-ad/testimonials", label: "نظرات مشتریان", icon: Star },
     { href: "/sehat-ad/team", label: "تیم", icon: Users2 },

@@ -1,6 +1,7 @@
 # ============================================================
-# .dockerignore — files NOT copied into the Docker image
-# Reduces image size + speeds up builds + prevents secrets leaking
+# .dockerignore — files NOT copied into the Docker build context
+# ============================================================
+# Prevents secrets from leaking into image layers + reduces build size.
 # ============================================================
 
 # Dependencies
@@ -15,10 +16,11 @@ out
 dist
 build
 
-# Database files (will be mounted as volume, not baked into image)
+# Database files (mounted as volume at runtime)
 db/
 *.db
 *.db-journal
+db/backups/
 
 # Git
 .git
@@ -30,11 +32,25 @@ db/
 *.swp
 *.swo
 
-# Env files (use runtime env vars, not baked-in)
+# Env files — NEVER bake into image
 .env
 .env.local
 .env.production
 .env.*.local
+.env.docker
+.env.docker.*
+
+# AI SDK config (contains API key — mount as volume instead)
+.z-ai-config
+.z-ai-config.*
+
+# Secrets directory (contains API keys — mount as volume instead)
+secrets/
+secrets/**
+
+# Backups
+backups/
+backups/**
 
 # Logs
 *.log
@@ -55,6 +71,8 @@ docker-compose.*.yml
 # Documentation
 *.md
 docs/
+DEPLOY.md
+worklog.md
 
 # Tests
 tests/
@@ -71,12 +89,9 @@ upload/
 
 # Misc project artifacts
 .tsbuildinfo
+tool-results/
 
-# Secrets must never enter the build context
 .env*
 **/.env*
-.z-ai-config*
 **/.z-ai-config*
-secrets/
-backups/
 *.tsbuildinfo

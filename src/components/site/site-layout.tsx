@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { GlobalBackground } from "@/components/site/global-background";
+import { BrandThemeInjector } from "@/components/site/brand-theme-injector";
 import { useUI } from "@/lib/ui-store";
 import { api } from "@/lib/api-client";
 
@@ -35,6 +36,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     // GlobalBackground (-z-10) behind content but above base bg.
     <div className="site-shell relative isolate min-h-screen flex flex-col bg-background overflow-x-hidden">
       <GlobalBackground />
+      <BrandThemeInjector />
       <Navbar />
       <main className="relative z-10 flex-1">{children}</main>
       <Footer />

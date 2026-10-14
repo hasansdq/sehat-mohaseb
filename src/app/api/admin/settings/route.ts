@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getAllSettings, setSettings, setSetting, getSettingsByGroup } from "@/lib/settings";
 import { db } from "@/lib/db";
 import { ok, fail, requireAdmin, getClientIp, logActivity } from "@/lib/api";
-import { hashPassword, verifyPassword } from "@/lib/auth";
+import { hashPassword, verifyPassword, MIN_ADMIN_PASSWORD_LENGTH } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   if (!(await requireAdmin(req))) return Response.json({ ok: false, error: "غیرمجاز" }, { status: 401 });
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest) {
   if (action === "changePassword") {
     const current = body.currentPassword;
     const newPw = body.newPassword;
-    if (!newPw || String(newPw).length < 6) return fail("رمز جدید باید حداقل ۶ کاراکتر باشد.", 422);
+    if (!newPw || String(newPw).length < MIN_ADMIN_PASSWORD_LENGTH) return fail("رمز جدید باید حداقل ۱۲ کاراکتر باشد.", 422);
     const storedHash = (await getAllSettings())["admin.passwordHash"];
     if (!storedHash || !verifyPassword(String(current), storedHash)) return fail("رمز فعلی اشتباه است.", 403);
     await setSetting("admin.passwordHash", hashPassword(String(newPw)), "general");

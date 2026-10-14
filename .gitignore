@@ -64,9 +64,7 @@ docker-backups/
 secrets/
 backups/
 db/
-!.env.docker.example
-
-# Local development history and sandbox proxy configuration
 /worklog.md
 /.zscripts/
 /Caddyfile
+!.env.docker.example

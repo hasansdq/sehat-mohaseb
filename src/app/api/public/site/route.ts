@@ -5,13 +5,18 @@ import { ok } from "@/lib/api";
 
 export async function GET() {
   const settings = await getAllSettings();
-  // strip sensitive keys for public
+  // CRITICAL: strip ALL sensitive keys — anything containing api keys, passwords,
+  // admin credentials, or internal config must NEVER be exposed publicly.
   const safe: Record<string, string> = {};
   for (const [k, v] of Object.entries(settings)) {
-    if (k.startsWith("admin.") || k.startsWith("backup.") || k.startsWith("security.") || k === "ai.systemPrompt") continue;
+    // Block known sensitive groups
+    if (k.startsWith("admin.") || k.startsWith("backup.") || k.startsWith("security.")) continue;
+    // Block AI system prompt (internal)
+    if (k === "ai.systemPrompt") continue;
+    // Block ALL openai.* keys (contains apiKey!)
+    if (k.startsWith("openai.")) continue;
     safe[k] = v;
   }
-  // attach nav-relevant public pieces in one call
   const services = await db.service.findMany({ where: { featured: true }, orderBy: { order: "asc" }, take: 8 });
   return ok({ settings: safe, services });
 }

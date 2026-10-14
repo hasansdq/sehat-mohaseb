@@ -3,27 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, UserRound, LogOut, LayoutDashboard, Phone, Sparkles, ShieldCheck, Award, Headset, ChevronDown, Package, ShoppingBag } from "lucide-react";
+import { Menu, X, UserRound, LogOut, LayoutDashboard, Phone, Sparkles, ShieldCheck, Award, Headset, ChevronDown } from "lucide-react";
 import { ThemeToggle } from "@/components/site/theme-toggle";
 import { useUI } from "@/lib/ui-store";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api-client";
 
-const LINKS = [
-  { href: "/services", label: "خدمات" },
-  { href: "/packages", label: "بسته‌ها" },
-  { href: "/about", label: "درباره ما" },
-  { href: "/articles", label: "مقالات" },
-  { href: "/contact", label: "تماس" },
-];
-
-// "نرم افزارهای حسابداری" dropdown with two software landings as sub-items.
-const SOFTWARE_DROPDOWN = {
-  label: "نرم‌افزارهای حسابداری",
-  items: [
-    { href: "/software/sepidar", label: "نرم‌افزار سپیدار", sub: "حسابداری شرکتی", icon: Package },
-    { href: "/software/dasht", label: "نرم‌افزار دشت", sub: "مدیریت فروشگاهی", icon: ShoppingBag },
-  ],
+type NavItem = {
+  id: string;
+  label: string;
+  href: string;
+  icon: string | null;
+  parentId: string | null;
+  order: number;
+  visible: boolean;
+  children?: NavItem[];
 };
 
 const TRUST_ITEMS = [
@@ -37,6 +31,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenu] = useState(false);
   const [softwareOpen, setSoftwareOpen] = useState(false);
+  const [navItems, setNavItems] = useState<NavItem[]>([]);
   const pathname = usePathname();
   const { setMenu: setMenuStore, openAuth, openPanel, user, setUser } = useUI();
 
@@ -47,15 +42,29 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // close mobile menu + software dropdown on route change
+  useEffect(() => {
+    api<{ items: NavItem[] }>("/api/public/nav-items").then((r) => {
+      if (r.ok && r.data && r.data.items.length > 0) {
+        // Build tree: top-level items + their children
+        const tops = r.data.items.filter((i) => !i.parentId).sort((a, b) => a.order - b.order);
+        const tree = tops.map((top) => ({
+          ...top,
+          children: r.data!.items
+            .filter((c) => c.parentId === top.id)
+            .sort((a, b) => a.order - b.order),
+        }));
+        setNavItems(tree);
+      }
+    });
+  }, []);
+
   useEffect(() => { setMenu(false); setSoftwareOpen(false); }, [pathname]);
 
   const isActive = (href: string) => {
+    if (href === "#" || !href) return false;
     if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(href + "/");
   };
-
-  const isSoftwareActive = SOFTWARE_DROPDOWN.items.some((it) => isActive(it.href));
 
   const logout = async () => {
     await api("/api/auth/logout", { method: "POST" });
@@ -105,61 +114,60 @@ export function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop nav */}
+          {/* Desktop nav — rendered from API nav items */}
           <nav className="hidden lg:flex items-center gap-0.5">
-            {/* Software dropdown */}
-            <div className="relative group">
-              <button
-                className={`relative px-4 py-2 text-sm font-semibold transition-colors rounded-lg inline-flex items-center gap-1 ${
-                  isSoftwareActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {SOFTWARE_DROPDOWN.label}
-                <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" />
-                <span
-                  className={`absolute bottom-1 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-gradient-brand transition-all duration-300 ${
-                    isSoftwareActive ? "w-6 opacity-100" : "w-0 opacity-0 group-hover:w-4 group-hover:opacity-50"
-                  }`}
-                />
-              </button>
-              {/* dropdown panel */}
-              <div className="absolute top-full right-0 mt-1 w-72 opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 z-50">
-                <div className="glass-strong rounded-2xl p-2 shadow-2xl border border-border/60">
-                  {SOFTWARE_DROPDOWN.items.map((it) => {
-                    const active = isActive(it.href);
-                    return (
-                      <Link
-                        key={it.href}
-                        href={it.href}
-                        className={`flex items-center gap-3 rounded-xl p-3 transition-all ${
-                          active ? "bg-primary/10" : "hover:bg-primary/5"
+            {navItems.map((item) => {
+              const hasChildren = item.children && item.children.length > 0;
+              const active = isActive(item.href);
+              if (hasChildren) {
+                return (
+                  <div key={item.id} className="relative group">
+                    <button
+                      className={`relative px-4 py-2 text-sm font-semibold transition-colors rounded-lg inline-flex items-center gap-1 ${
+                        active || item.children!.some((c) => isActive(c.href)) ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {item.label}
+                      <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" />
+                      <span
+                        className={`absolute bottom-1 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-gradient-brand transition-all duration-300 ${
+                          active || item.children!.some((c) => isActive(c.href)) ? "w-6 opacity-100" : "w-0 opacity-0 group-hover:w-4 group-hover:opacity-50"
                         }`}
-                      >
-                        <span className={`grid place-items-center h-10 w-10 rounded-xl flex-shrink-0 ${active ? "bg-gradient-brand text-white shadow-glow" : "bg-primary/10 text-primary"}`}>
-                          <it.icon className="h-5 w-5" />
-                        </span>
-                        <div className="min-w-0">
-                          <div className={`text-sm font-bold ${active ? "text-primary" : "text-foreground"}`}>{it.label}</div>
-                          <div className="text-[11px] text-muted-foreground">{it.sub}</div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {LINKS.map((l) => {
-              const active = isActive(l.href);
+                      />
+                    </button>
+                    {/* dropdown panel */}
+                    <div className="absolute top-full right-0 mt-1 w-72 opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 z-50">
+                      <div className="glass-strong rounded-2xl p-2 shadow-2xl border border-border/60">
+                        {item.children!.map((child) => {
+                          const childActive = isActive(child.href);
+                          return (
+                            <Link
+                              key={child.id}
+                              href={child.href}
+                              className={`flex items-center gap-3 rounded-xl p-3 transition-all ${
+                                childActive ? "bg-primary/10" : "hover:bg-primary/5"
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <div className={`text-sm font-bold ${childActive ? "text-primary" : "text-foreground"}`}>{child.label}</div>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <Link
-                  key={l.href}
-                  href={l.href}
+                  key={item.id}
+                  href={item.href}
                   className={`relative px-4 py-2 text-sm font-semibold transition-colors rounded-lg group ${
                     active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {l.label}
+                  {item.label}
                   <span
                     className={`absolute bottom-1 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-gradient-brand transition-all duration-300 ${
                       active ? "w-6 opacity-100" : "w-0 opacity-0 group-hover:w-4 group-hover:opacity-50"
@@ -208,57 +216,56 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile menu — rendered from API nav items */}
         {menuOpen && (
           <nav className="lg:hidden mt-2">
             <div className="glass-strong rounded-2xl p-2 flex flex-col gap-1">
-              {/* Software dropdown (collapsible) */}
-              <button
-                onClick={() => setSoftwareOpen(!softwareOpen)}
-                className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                  isSoftwareActive ? "bg-primary/5 text-primary" : "hover:bg-primary/5 hover:text-primary"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  {SOFTWARE_DROPDOWN.label}
-                </span>
-                <ChevronDown className={`h-4 w-4 transition-transform ${softwareOpen ? "rotate-180" : ""}`} />
-              </button>
-              {softwareOpen && (
-                <div className="pr-4 flex flex-col gap-1 pb-1">
-                  {SOFTWARE_DROPDOWN.items.map((it) => (
-                    <Link
-                      key={it.href}
-                      href={it.href}
-                      onClick={() => handleMenu(false)}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors ${
-                        isActive(it.href) ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
-                      }`}
-                    >
-                      <span className="grid place-items-center h-8 w-8 rounded-lg bg-primary/10 text-primary">
-                        <it.icon className="h-4 w-4" />
-                      </span>
-                      <div>
-                        <div className="font-bold">{it.label}</div>
-                        <div className="text-[11px] text-muted-foreground">{it.sub}</div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {LINKS.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => handleMenu(false)}
-                  className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    isActive(l.href) ? "bg-primary/5 text-primary" : "hover:bg-primary/5 hover:text-primary"
-                  }`}
-                >
-                  {l.label}
-                </Link>
-              ))}
+              {navItems.map((item) => {
+                const hasChildren = item.children && item.children.length > 0;
+                if (hasChildren) {
+                  return (
+                    <div key={item.id}>
+                      <button
+                        onClick={() => setSoftwareOpen(!softwareOpen)}
+                        className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                          isActive(item.href) || item.children!.some((c) => isActive(c.href)) ? "bg-primary/5 text-primary" : "hover:bg-primary/5 hover:text-primary"
+                        }`}
+                      >
+                        {item.label}
+                        <ChevronDown className={`h-4 w-4 transition-transform ${softwareOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {softwareOpen && (
+                        <div className="pr-4 flex flex-col gap-1 pb-1">
+                          {item.children!.map((child) => (
+                            <Link
+                              key={child.id}
+                              href={child.href}
+                              onClick={() => handleMenu(false)}
+                              className={`px-4 py-2.5 rounded-xl text-sm transition-colors ${
+                                isActive(child.href) ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
+                              }`}
+                            >
+                              {child.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={() => handleMenu(false)}
+                    className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                      isActive(item.href) ? "bg-primary/5 text-primary" : "hover:bg-primary/5 hover:text-primary"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
               <a href="tel:+982191010010" className="px-4 py-3 rounded-xl text-sm font-bold text-primary flex items-center gap-2 border-t border-border/40 mt-1">
                 <Phone className="h-4 w-4" /> <span dir="ltr">۰۲۱-۹۱۰۱۰۰۱۰</span>
               </a>

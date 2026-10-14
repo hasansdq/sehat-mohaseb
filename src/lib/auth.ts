@@ -2,16 +2,50 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
+// ============================================================
+// JWT Secret — LAZY evaluation (not at module load time)
+// ============================================================
+// Prevents build-time failures. In production, JWT_SECRET MUST be set
+// and at least 32 characters. No insecure fallback in production.
+// ============================================================
+
+let _secret: string | null = null;
+
 function getJwtSecret(): string {
+  if (_secret) return _secret;
+
   const secret = process.env.JWT_SECRET;
-  if (process.env.NODE_ENV === "production" && (!secret || secret.length < 32)) {
-    throw new Error("JWT_SECRET must contain at least 32 characters in production");
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "FATAL: JWT_SECRET environment variable is not set. " +
+        "Refusing to issue tokens with an insecure secret in production. " +
+        "Set JWT_SECRET in your .env.docker file (generate with: openssl rand -base64 48)."
+      );
+    }
+    console.warn("⚠️  JWT_SECRET not set — using insecure dev fallback. DO NOT use in production!");
+    _secret = "sehat-mohaseb-DEV-ONLY-insecure-secret-do-not-use-in-prod";
+    return _secret;
   }
-  return secret || "development-only-secret-never-use-in-production";
+  if (secret.length < 32) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "FATAL: JWT_SECRET is too short (must be at least 32 characters). " +
+        "Generate a strong secret with: openssl rand -base64 48."
+      );
+    }
+    console.warn("⚠️  JWT_SECRET is short — recommended at least 32 characters.");
+  }
+  _secret = secret;
+  return _secret;
 }
+
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 const ADMIN_JWT_EXPIRES_IN = process.env.ADMIN_JWT_EXPIRES_IN || "12h";
 const REFRESH_EXPIRES_DAYS = 30;
+
+// Minimum password length for admin (stricter than user passwords)
+export const MIN_ADMIN_PASSWORD_LENGTH = 12;
 
 export function hashPassword(plain: string): string {
   return bcrypt.hashSync(plain, 12);
@@ -26,7 +60,7 @@ export function verifyPassword(plain: string, hash: string): boolean {
 }
 
 export type AppTokenPayload = JwtPayload & {
-  sub: string; // user id
+  sub: string;
   mobile: string;
   role: "USER" | "ADMIN";
   kind: "access" | "refresh";
@@ -66,7 +100,6 @@ export function hashToken(token: string): string {
 export function normalizeMobile(input: string): string {
   if (!input) return "";
   let m = input.trim().replace(/[\s\-()]/g, "");
-  // convert persian/arabic digits
   m = m.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
   m = m.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   if (m.startsWith("+98")) m = m.slice(3);

@@ -66,20 +66,80 @@ ${packagesText}
 }
 
 export async function runChat(history: AIMessage[], opts?: { temperature?: number; maxTokens?: number }): Promise<string> {
-  const settings = await getSettings(["ai.model", "ai.temperature", "ai.maxTokens"]);
+  const settings = await getSettings([
+    "ai.model", "ai.temperature", "ai.maxTokens",
+    "openai.enabled", "openai.apiKey", "openai.baseUrl", "openai.model", "openai.temperature", "openai.maxTokens",
+  ]);
+
   const temperature = Number(opts?.temperature ?? settings["ai.temperature"] ?? 0.6);
   const maxTokens = Number(opts?.maxTokens ?? settings["ai.maxTokens"] ?? 1200);
+  const model = settings["ai.model"] || "glm-4.6";
 
+  // Check if admin has configured OpenAI as the AI provider
+  if (settings["openai.enabled"] === "true" && settings["openai.apiKey"]) {
+    return runOpenAI(history, settings, temperature, maxTokens);
+  }
+
+  // Default: use z-ai-web-dev-sdk
   const zai = await ZAI.create();
   const completion = await zai.chat.completions.create({
-    model: settings["ai.model"] || "glm-4.6",
     messages: history as any,
     thinking: { type: "disabled" },
+    model,
     temperature,
     max_tokens: maxTokens,
   } as any);
 
   return completion.choices?.[0]?.message?.content?.trim() || "متاسفم، پاسخی دریافت نشد. لطفاً دوباره تلاش کنید.";
+}
+
+async function runOpenAI(
+  history: AIMessage[],
+  settings: Record<string, string>,
+  defaultTemp: number,
+  defaultMaxTokens: number,
+): Promise<string> {
+  const apiKey = settings["openai.apiKey"];
+  const baseUrl = (settings["openai.baseUrl"] || "https://api.openai.com/v1").replace(/\/$/, "");
+  const model = settings["openai.model"] || "gpt-4o-mini";
+  const temperature = Number(settings["openai.temperature"] || defaultTemp);
+  const maxTokens = Number(settings["openai.maxTokens"] || defaultMaxTokens);
+
+  // Explicit timeout (30s) to prevent hanging on network issues
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const resp = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: history.map((m) => ({ role: m.role, content: m.content })),
+        temperature,
+        max_tokens: maxTokens,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      throw new Error(`OpenAI API error (${resp.status}): ${errText.slice(0, 200)}`);
+    }
+
+    const data = await resp.json();
+    return data.choices?.[0]?.message?.content?.trim() || "متاسفم، پاسخی دریافت نشد. لطفاً دوباره تلاش کنید.";
+  } catch (e: any) {
+    if (e.name === "AbortError") {
+      throw new Error("OpenAI API request timed out after 30 seconds.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function parseActions(text: string): { content: string; actions: string[] } {

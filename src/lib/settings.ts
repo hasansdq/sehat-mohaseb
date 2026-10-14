@@ -12,6 +12,7 @@ const DEFAULTS: Record<string, string> = {
   "site.description": "خدمات حرفه‌ای حسابداری، مشاوره مالی و مالیاتی",
   "site.logoUrl": "/favicon.svg",
   "site.brandColor": "#10a37f",
+  "site.accentColor": "#e8b94a",
   "site.announcement": "",
   "site.announcementActive": "false",
   // contact
@@ -37,6 +38,13 @@ const DEFAULTS: Record<string, string> = {
   "ai.greeting": "سلام! من «صحت» هستم، دستیار مالی موسسه صحت محاسب. چطور می‌تونم در حسابداری، مالیات یا انتخاب نرم‌افزار مناسب بهت کمک کنم؟",
   "ai.enablePackageBuilder": "true",
   "ai.enableConsultation": "true",
+  // openai connection (admin configurable)
+  "openai.enabled": "false",
+  "openai.apiKey": "",
+  "openai.baseUrl": "https://api.openai.com/v1",
+  "openai.model": "gpt-4o-mini",
+  "openai.temperature": "0.6",
+  "openai.maxTokens": "1200",
   // security
   "security.maxLoginAttempts": "5",
   "security.lockMinutes": "15",

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Startup seed runs directly in Node.js. */
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const db = new PrismaClient();
