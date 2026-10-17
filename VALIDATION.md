@@ -1,7 +1,21 @@
-# Validation — 2026-10-14
+# Validation — 2026-10-17
 
-Passed: production Next.js build with TypeScript, ESLint, shell and seed syntax; Prisma CLI after pruning development dependencies; fresh SQLite entrypoint and repeated seed preserving edited services and administrator password; short administrator password rejected.
+Validated the updated article editor and image upload deployment in the available Linux/Node.js environment:
 
-Docker packaging now copies the complete locked production dependency tree and generated Prisma client from the builder. Environment secrets, databases and development history are excluded from Git/build.
+- Locked dependency installation and Prisma Client generation.
+- Production Next.js build, TypeScript validation, ESLint, shell syntax.
+- Prisma CLI with development dependencies pruned.
+- Fresh SQLite startup; repeated seed preserves edited content and administrator password.
+- Public homepage/API and authenticated administrator dashboard.
+- Restored administrator backup API/page; backup SQLite integrity_check passes.
+- Missing JWT secret blocks startup.
+- Production image upload requires administrator authentication.
+- Uploaded PNG is re-encoded and immediately readable at /api/uploads/… .
+- Existing /uploads/… links work through an internal rewrite, including files added after server startup.
+- ETag revalidation; symlink and traversal attempts are rejected.
+- SVG uploads, fake WebP/WAV, corrupt PNG and oversized requests are rejected.
+- A synthetic OpenAI API key stored in the test database is absent from the public settings response.
 
-Limitations: Docker daemon unavailable; Alpine image build/run and live AI provider requests were not tested here. Back up existing data before deployment. Schema synchronization does not accept data loss.
+The runtime tests passed again after pruning development dependencies. Test databases, passwords and images are disposable; no live provider credentials are used.
+
+Limitations: Docker daemon unavailable, so the Alpine image itself was not built/run here. Interactive editor typing/undo and live AI provider calls require verification after deployment. Existing Docker volumes and database schema are preserved. Use deploy.sh backup before updating.

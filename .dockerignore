@@ -95,3 +95,5 @@ tool-results/
 **/.env*
 **/.z-ai-config*
 *.tsbuildinfo
+
+src_backup*/

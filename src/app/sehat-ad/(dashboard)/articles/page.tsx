@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Search, FileText, Star, Loader2 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Plus, Pencil, Trash2, Search, FileText, Star, Loader2, Upload, Image as ImageIcon, X } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { PageHeader, AdminCard, Badge, EmptyState, faDate, Input, Textarea } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 
 type Article = { id: string; slug: string; title: string; excerpt: string | null; content: string; coverUrl: string | null; category: string | null; tags: string | null; authorName: string | null; status: string; featured: boolean; views: number; publishedAt: string | null; createdAt: string };
 
@@ -103,6 +104,8 @@ export default function ArticlesPage() {
 function ArticleEditor({ open, article, onClose, onSaved }: { open: boolean; article: Article | null; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -120,9 +123,30 @@ function ArticleEditor({ open, article, onClose, onSaved }: { open: boolean; art
     if (r.ok) { toast.success(article ? "بروزرسانی شد." : "ایجاد شد."); onSaved(); } else toast.error(r.error || "خطا.");
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const resp = await fetch("/api/admin/upload", { method: "POST", body: formData });
+      const json = await resp.json();
+      if (json.ok && json.data?.url) {
+        setForm({ ...form, coverUrl: json.data.url });
+        toast.success("تصویر شاخص بارگذاری شد.");
+      } else {
+        toast.error(json.error || "خطا در بارگذاری.");
+      }
+    } catch {
+      toast.error("خطا در بارگذاری تصویر.");
+    }
+    setUploadingCover(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">{article ? "ویرایش مقاله" : "مقاله جدید"}</DialogTitle>
         </DialogHeader>
@@ -136,10 +160,66 @@ function ArticleEditor({ open, article, onClose, onSaved }: { open: boolean; art
             <Input label="نام نویسنده" value={form.authorName || ""} onChange={(v) => setForm({ ...form, authorName: v })} />
             <Input label="زمان مطالعه (دقیقه)" value={String(form.readingMinutes || "")} onChange={(v) => setForm({ ...form, readingMinutes: v })} ltr />
           </div>
-          <Input label="آدرس کاور" value={form.coverUrl || ""} onChange={(v) => setForm({ ...form, coverUrl: v })} ltr placeholder="https://..." />
+
+          {/* ===== Cover image upload (file picker) ===== */}
+          <div>
+            <label className="text-sm font-semibold text-foreground mb-1.5 block">تصویر شاخص</label>
+            {form.coverUrl ? (
+              <div className="relative rounded-xl overflow-hidden border border-border group">
+                <img src={form.coverUrl} alt="cover" className="w-full h-40 object-cover" />
+                <button
+                  onClick={() => setForm({ ...form, coverUrl: "" })}
+                  className="absolute top-2 left-2 grid place-items-center h-8 w-8 rounded-full bg-rose-500/80 text-white hover:bg-rose-500 transition-colors"
+                  aria-label="حذف تصویر"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="absolute bottom-2 right-2 text-xs font-bold text-white bg-black/50 px-2 py-1 rounded">
+                  {form.coverUrl}
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => coverInputRef.current?.click()}
+                className="flex flex-col items-center justify-center h-32 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-primary/5 cursor-pointer transition-all"
+              >
+                {uploadingCover ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                ) : (
+                  <>
+                    <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                    <span className="text-sm font-semibold text-muted-foreground">کلیک کنید یا فایل را بکشید</span>
+                    <span className="text-xs text-muted-foreground/60 mt-0.5">JPEG, PNG, WebP, GIF — حداکثر ۵MB</span>
+                  </>
+                )}
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverUpload}
+                  className="hidden"
+                />
+              </div>
+            )}
+          </div>
+
           <Input label="برچسب‌ها (با ویرگول)" value={form.tags || ""} onChange={(v) => setForm({ ...form, tags: v })} />
           <Textarea label="خلاصه" value={form.excerpt || ""} onChange={(v) => setForm({ ...form, excerpt: v })} rows={2} />
-          <Textarea label="محتوا" value={form.content || ""} onChange={(v) => setForm({ ...form, content: v })} rows={8} hint="پشتیبانی از متن ساده" />
+
+          {/* ===== Rich Text Editor (WYSIWYG) ===== */}
+          <div>
+            <label className="text-sm font-semibold text-foreground mb-1.5 block">محتوای مقاله</label>
+            <RichTextEditor
+              editorKey={article?.id || "new"}
+              value={form.content || ""}
+              onChange={(markdown) => setForm({ ...form, content: markdown })}
+              placeholder="متن مقاله را بنویسید... از ابزارها برای بولد، تیتر، لیست و تصویر استفاده کنید"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              ابزارها: بولد/ایتالیک • تیترها (H1-H4) • لیست‌های نقطه‌ای و شماره‌ای • نقل‌قول • لینک • تصویر (با آپلود فایل)
+            </p>
+          </div>
+
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input type="checkbox" checked={!!form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} className="h-4 w-4 rounded" />

@@ -61,10 +61,12 @@ server.log
 # Docker build artifacts
 docker-backups/
 
-secrets/
-backups/
-db/
+/secrets/
+/backups/
+/db/
 /worklog.md
 /.zscripts/
 /Caddyfile
 !.env.docker.example
+
+/src_backup*/

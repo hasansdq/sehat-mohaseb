@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory(prefix='sehat-check-') as td:
   status,headers,_=req('/api/admin/login',{'username':'deploytest','password':pw});assert status==200,(status,_)
   cookie=headers['Set-Cookie'].split(';')[0]
   assert req('/api/admin/dashboard',cookie=cookie)[0]==200
-  status,_,data=req('/api/admin/backups',{},cookie);assert status==200,(status,data)
+  status,_,data=req('/api/admin/backups',{},cookie);assert status==200,(status,data[:300])
   backup=json.loads(data)['data']['backup']['path']
   c=sqlite3.connect(backup);assert c.execute('PRAGMA integrity_check').fetchone()[0]=='ok';c.close()
   print('HTTP pages, admin auth and SQLite backup: PASS')

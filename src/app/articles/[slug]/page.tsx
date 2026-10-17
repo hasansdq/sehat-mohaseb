@@ -9,6 +9,7 @@ import {
 import { api } from "@/lib/api-client";
 import { Reveal } from "@/components/site/reveal";
 import { SiteLayout } from "@/components/site/site-layout";
+import { MarkdownRenderer } from "@/components/site/markdown-renderer";
 import { toast } from "sonner";
 
 type Article = {
@@ -192,16 +193,11 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ slug: 
         </section>
       )}
 
-      {/* Body */}
+      {/* Body — renders markdown content from the RichTextEditor */}
       <section className="relative py-8 md:py-12">
         <div className="container mx-auto px-4 max-w-3xl">
           <Reveal>
-            <article
-              className="prose-article text-foreground/85 leading-loose text-base sm:text-lg whitespace-pre-wrap"
-              style={{ fontFamily: "inherit" }}
-            >
-              {article.content || article.excerpt || "محتوای این مقاله در حال آماده‌سازی است."}
-            </article>
+            <MarkdownRenderer content={article.content || article.excerpt || "محتوای این مقاله در حال آماده‌سازی است."} />
           </Reveal>
 
           {/* Share row (decorative) */}
