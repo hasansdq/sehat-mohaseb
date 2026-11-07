@@ -1,21 +1,29 @@
-# Validation — 2026-10-17
+# Validation — 2026-11-07
 
-Validated the updated article editor and image upload deployment in the available Linux/Node.js environment:
+Version 12 features merged onto verified commit f65f53f0e9e7785b7c85495fd1a0de3570db4e8e.
 
-- Locked dependency installation and Prisma Client generation.
-- Production Next.js build, TypeScript validation, ESLint, shell syntax.
-- Prisma CLI with development dependencies pruned.
-- Fresh SQLite startup; repeated seed preserves edited content and administrator password.
-- Public homepage/API and authenticated administrator dashboard.
-- Restored administrator backup API/page; backup SQLite integrity_check passes.
-- Missing JWT secret blocks startup.
-- Production image upload requires administrator authentication.
-- Uploaded PNG is re-encoded and immediately readable at /api/uploads/… .
-- Existing /uploads/… links work through an internal rewrite, including files added after server startup.
-- ETag revalidation; symlink and traversal attempts are rejected.
-- SVG uploads, fake WebP/WAV, corrupt PNG and oversized requests are rejected.
-- A synthetic OpenAI API key stored in the test database is absent from the public settings response.
+- Preserved authenticated, validated image uploads, realpath containment, legacy image rewrites, SVG sandboxing, stable client-only article editor, backup routes and root-scoped ignore rules.
+- Added blog pages and editable trust bar/blog settings.
+- Implemented bounded server pagination and search, stable category choices and published-only article access. Existing article API consumers still receive `items`.
+- ESLint, production Next.js build/TypeScript and shell syntax passed.
+- Disposable SQLite production runtime tests passed: fresh startup, repeated seed preserves edits and password, public pages, administrator authentication, backup integrity and missing-secret rejection.
+- Upload runtime tests passed: authenticated uploads, immediate image reads, legacy URLs, ETag, symlink/traversal rejection, invalid image and oversized request rejection, legacy SVG sandbox headers, public settings secret filtering.
+- Blog runtime tests passed: both page routes, 105 matching articles across pages without duplication, category/search filters, draft isolation, invalid and oversized limit handling.
 
-The runtime tests passed again after pruning development dependencies. Test databases, passwords and images are disposable; no live provider credentials are used.
+No database schema, Docker volume names, bind address or production secrets changed. No live server was modified. No environment files, private keys, database contents or uploaded user files are included in this change.
 
-Limitations: Docker daemon unavailable, so the Alpine image itself was not built/run here. Interactive editor typing/undo and live AI provider calls require verification after deployment. Existing Docker volumes and database schema are preserved. Use deploy.sh backup before updating.
+Limitations: Docker is unavailable in this environment, so the Alpine image build and actual VPS health check must be verified during deployment. Interactive browser editing and live AI provider calls were not tested.
+
+## Existing VPS update
+
+Run in the existing installation directory to keep the Compose project/volumes:
+
+```bash
+cd /opt/sehat-mohaseb
+bash deploy.sh backup && git pull --ff-only && bash deploy.sh build
+docker compose ps
+curl --fail --show-error http://127.0.0.1:3001/api/public/site
+curl --fail --show-error https://sehatmohaseb.com/api/public/site
+```
+
+`build` waits for container health. Keep existing `.env.docker` and `secrets/.z-ai-config`. Do not run `docker compose down -v` or delete volumes. The backup command saves the SQLite database, not uploaded images; retain a separate backup of the uploads volume. A domain-only failure after a successful local API check requires checking DirectAdmin proxy/DNS/TLS independently.

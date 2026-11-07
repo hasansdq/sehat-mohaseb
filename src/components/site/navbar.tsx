@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, UserRound, LogOut, LayoutDashboard, Phone, Sparkles, ShieldCheck, Award, Headset, ChevronDown } from "lucide-react";
+import { Menu, X, UserRound, LogOut, LayoutDashboard, Phone, Sparkles, ShieldCheck, Award, Headset, ChevronDown, BadgeCheck } from "lucide-react";
+import * as Icons from "lucide-react";
 import { ThemeToggle } from "@/components/site/theme-toggle";
 import { useUI } from "@/lib/ui-store";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ type NavItem = {
   children?: NavItem[];
 };
 
+// Default trust items fallback (used while settings load)
 const TRUST_ITEMS = [
   { icon: ShieldCheck, text: "نماینده رسمی سطح ۱ سپیدار و دشت" },
   { icon: Award, text: "+۱۲ سال تجربه در حسابداری" },
@@ -32,8 +34,29 @@ export function Navbar() {
   const [menuOpen, setMenu] = useState(false);
   const [softwareOpen, setSoftwareOpen] = useState(false);
   const [navItems, setNavItems] = useState<NavItem[]>([]);
+  const [trustItems, setTrustItems] = useState<{ icon: any; text: string }[]>(TRUST_ITEMS);
+  const [trustEnabled, setTrustEnabled] = useState(true);
   const pathname = usePathname();
   const { setMenu: setMenuStore, openAuth, openPanel, user, setUser } = useUI();
+
+  // Load trust bar items from admin settings
+  useEffect(() => {
+    api<{ settings: Record<string, string> }>("/api/public/site").then((r) => {
+      if (!r.ok || !r.data?.settings) return;
+      const s = r.data.settings;
+      setTrustEnabled(s["trustbar.enabled"] === "true");
+      const items: { icon: any; text: string }[] = [];
+      for (let i = 1; i <= 6; i++) {
+        const text = s[`trustbar.item${i}_text`];
+        if (text && text.trim()) {
+          const iconStr = s[`trustbar.item${i}_icon`] || "BadgeCheck";
+          const icon = (Icons as any)[iconStr] || Icons.BadgeCheck;
+          items.push({ icon, text: text.trim() });
+        }
+      }
+      setTrustItems(items);
+    });
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -76,22 +99,24 @@ export function Navbar() {
 
   return (
     <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${scrolled ? "py-1.5" : "py-2.5"}`}>
-      {/* Trust marquee bar */}
+      {/* Trust marquee bar — content from admin settings, color adapts to theme */}
+      {trustEnabled && trustItems.length > 0 && (
       <div className={`hidden md:block transition-all duration-500 overflow-hidden ${scrolled ? "h-0 opacity-0" : "h-9 opacity-100"}`}>
         <div className="container mx-auto px-4">
-          <div className="rounded-t-2xl bg-gradient-brand/95 backdrop-blur-md text-white/95 flex items-center overflow-hidden h-9">
+          <div className="rounded-t-2xl bg-gradient-brand/95 backdrop-blur-md flex items-center overflow-hidden h-9">
             <div className="flex items-center gap-6 px-3 py-1.5 whitespace-nowrap animate-marquee">
-              {[...TRUST_ITEMS, ...TRUST_ITEMS, ...TRUST_ITEMS, ...TRUST_ITEMS].map((t, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 text-[11px] font-bold">
-                  <t.icon className="h-3.5 w-3.5 text-amber-300 flex-shrink-0" />
+              {[...trustItems, ...trustItems, ...trustItems, ...trustItems].map((t, i) => (
+                <span key={i} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white dark:text-white">
+                  <t.icon className="h-3.5 w-3.5 text-amber-300 dark:text-amber-300 flex-shrink-0" />
                   {t.text}
-                  <span className="mx-3 text-white/30">•</span>
+                  <span className="mx-3 text-white/30 dark:text-white/30">•</span>
                 </span>
               ))}
             </div>
           </div>
         </div>
       </div>
+      )}
 
       <div className="container mx-auto px-4">
         <div

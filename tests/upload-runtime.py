@@ -27,6 +27,12 @@ with tempfile.TemporaryDirectory(prefix='sehat-upload-test-') as tmp:
     with sqlite3.connect(tmp / 'app.db') as connection:
         connection.execute('INSERT INTO Setting (id, key, value, "group", updatedAt) VALUES (?, ?, ?, ?, ?)',
                            ('review-secret', 'openai.apiKey', 'FAKE_REVIEW_SENTINEL', 'openai', int(time.time() * 1000)))
+    with sqlite3.connect(tmp / 'app.db') as connection:
+        for i in range(105):
+            connection.execute('INSERT INTO Article (id, slug, title, content, category, status, updatedAt, publishedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                (f'blog-test-{i}', f'blog-test-{i}', f'PaginationProbe {i}', 'test', 'ProbeA' if i < 104 else 'ProbeB', 'PUBLISHED', 1000, 1000))
+        connection.execute('INSERT INTO Article (id, slug, title, content, category, status, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            ('private-probe', 'private-probe', 'PaginationProbe draft', 'private', 'DraftOnly', 'DRAFT', 1000))
     png = subprocess.check_output(['node', '-e',
         "require('sharp')({create:{width:2,height:2,channels:3,background:'#336699'}}).png().toBuffer().then(b=>process.stdout.write(b))"], cwd=root)
     uploads = root / '.next/standalone/public/uploads'
@@ -63,6 +69,24 @@ with tempfile.TemporaryDirectory(prefix='sehat-upload-test-') as tmp:
         assert 'openai.apiKey' not in json.loads(settings_response)['data']['settings']
         assert request('/')[0] == 200
         assert request('/sehat-ad/articles')[0] == 200
+        assert request('/blog')[0] == 200
+        assert request('/blog/blog-test-1')[0] == 200
+        def articles(query):
+            status, _, body = request('/api/public/articles?' + query)
+            assert status == 200, body
+            return json.loads(body)['data']
+        first = articles('q=PaginationProbe&limit=100')
+        second = articles('q=PaginationProbe&limit=100&page=2')
+        assert first['total'] == 105 and len(first['items']) == 100 and len(second['items']) == 5
+        assert not ({a['id'] for a in first['items']} & {a['id'] for a in second['items']})
+        filtered = articles('q=PaginationProbe&category=ProbeB')
+        assert filtered['total'] == 1 and 'ProbeA' in filtered['categories'] and 'DraftOnly' not in filtered['categories']
+        assert request('/api/public/articles?slug=private-probe')[0] == 404
+        for value in ['-1', 'NaN', 'Infinity', '0', '0.2']:
+            assert len(articles('q=PaginationProbe&limit=' + value)['items']) == 12
+        assert len(articles('q=PaginationProbe&limit=99999')['items']) == 100
+        print('PASS: blog routes, search, pagination beyond 100, stable categories, draft isolation and invalid limits')
+
         body, mime = multipart(png)
         assert request('/api/admin/upload', body, content_type=mime)[0] == 401
         status, headers, data = request('/api/admin/login', json.dumps({'username':'uploadtest','password':password}).encode())
@@ -89,6 +113,11 @@ with tempfile.TemporaryDirectory(prefix='sehat-upload-test-') as tmp:
         assert request('/api/uploads/%2e%2e%2fprivate.png')[0] == 403
         assert request('/api/uploads/unknown.txt')[0] == 404
         assert request('/api/uploads/missing.png')[0] == 404
+        legacy_svg = uploads / ('legacy-' + secrets.token_hex(8) + '.svg')
+        legacy_svg.write_text('<svg xmlns="http://www.w3.org/2000/svg"/>'); created.append(legacy_svg)
+        status, headers, _ = request('/uploads/' + legacy_svg.name)
+        assert status == 200 and "sandbox" in headers['Content-Security-Policy']
+
         for image, claimed in [(b'RIFF'+bytes(4)+b'WAVE','image/webp'),
                                (b'<svg/>','image/svg+xml'), (b'\x89PNG\r\n\x1a\nFAKE','image/png')]:
             body, mime = multipart(image, claimed)

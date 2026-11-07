@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, Clock, Newspaper } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { Reveal } from "@/components/site/reveal";
@@ -44,16 +45,17 @@ export function ArticlesSection() {
               آخرین <span className="text-gradient-brand">مقالات</span> و راهنماهای مالی
             </h2>
           </div>
-          <a href="#articles" className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:gap-2.5 transition-all">
+          <Link href="/blog" className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:gap-2.5 transition-all">
             مشاهده همه
             <ArrowLeft className="h-4 w-4" />
-          </a>
+          </Link>
         </Reveal>
 
         <div className="grid md:grid-cols-3 gap-5 md:gap-6">
           {items.map((a, i) => (
             <Reveal key={a.id} delay={i * 0.08} className="h-full">
-              <article className="group h-full rounded-2xl overflow-hidden border border-border/60 bg-card/60 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-glow transition-all">
+              <Link href={`/blog/${a.slug}`} className="block h-full group">
+                <article className="group h-full rounded-2xl overflow-hidden border border-border/60 bg-card/60 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-glow transition-all cursor-pointer">
                 <div className="relative h-44 overflow-hidden bg-gradient-to-br from-primary/15 to-amber-400/10 grid place-items-center">
                   {a.coverUrl ? (
                     <img src={a.coverUrl} alt={a.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -77,6 +79,7 @@ export function ArticlesSection() {
                   <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{a.excerpt}</p>
                 </div>
               </article>
+              </Link>
             </Reveal>
           ))}
         </div>

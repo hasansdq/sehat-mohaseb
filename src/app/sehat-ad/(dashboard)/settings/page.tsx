@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, Loader2, Save, Globe, Phone, Share2, Search as SeoIcon, Sparkles, Shield, UserCog, Database, Palette, Zap, CheckCircle2, XCircle, Loader } from "lucide-react";
+import { Settings, Loader2, Save, Globe, Phone, Share2, Search as SeoIcon, Sparkles, Shield, UserCog, Database, Palette, Zap, CheckCircle2, XCircle, Loader, ShieldCheck, Newspaper } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { PageHeader, AdminCard, Input, Textarea } from "@/components/admin/ui";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { id: "general", label: "عمومی", icon: Globe },
   { id: "theme", label: "رنگ‌بندی و تم", icon: Palette },
+  { id: "trustbar", label: "نوار بالای هدر", icon: ShieldCheck },
+  { id: "blog", label: "تنظیمات وبلاگ", icon: Newspaper },
   { id: "contact", label: "تماس", icon: Phone },
   { id: "social", label: "شبکه‌های اجتماعی", icon: Share2 },
   { id: "seo", label: "سئو", icon: SeoIcon },
@@ -34,6 +36,28 @@ const KEY_LABELS: Record<string, { label: string; type?: "text" | "textarea" | "
   // theme (color picker)
   "site.brandColor": { label: "رنگ اصلی برند", group: "theme", ltr: true, hint: "رنگ غالب سایت (دکمه‌ها، گرادینت‌ها، آیکن‌ها)" },
   "site.accentColor": { label: "رنگ طلایی/تاکیدی", group: "theme", ltr: true, hint: "رنگ ثانویه برای تاکید و بَج‌ها" },
+  // trustbar (marquee bar at top of header)
+  "trustbar.enabled": { label: "نمایش نوار بالای هدر", group: "trustbar", type: "boolean" },
+  "trustbar.item1_text": { label: "متن آیتم ۱", group: "trustbar" },
+  "trustbar.item1_icon": { label: "آیکن آیتم ۱ (Lucide)", group: "trustbar", ltr: true, hint: "مثلاً ShieldCheck, Award, Headset" },
+  "trustbar.item2_text": { label: "متن آیتم ۲", group: "trustbar" },
+  "trustbar.item2_icon": { label: "آیکن آیتم ۲ (Lucide)", group: "trustbar", ltr: true },
+  "trustbar.item3_text": { label: "متن آیتم ۳", group: "trustbar" },
+  "trustbar.item3_icon": { label: "آیکن آیتم ۳ (Lucide)", group: "trustbar", ltr: true },
+  "trustbar.item4_text": { label: "متن آیتم ۴", group: "trustbar" },
+  "trustbar.item4_icon": { label: "آیکن آیتم ۴ (Lucide)", group: "trustbar", ltr: true },
+  "trustbar.item5_text": { label: "متن آیتم ۵ (اختیاری)", group: "trustbar", hint: "خالی بگذارید تا نمایش داده نشود" },
+  "trustbar.item5_icon": { label: "آیکن آیتم ۵", group: "trustbar", ltr: true },
+  "trustbar.item6_text": { label: "متن آیتم ۶ (اختیاری)", group: "trustbar", hint: "خالی بگذارید تا نمایش داده نشود" },
+  "trustbar.item6_icon": { label: "آیکن آیتم ۶", group: "trustbar", ltr: true },
+  // blog settings
+  "blog.title": { label: "عنوان صفحه وبلاگ", group: "blog" },
+  "blog.subtitle": { label: "زیرعنوان وبلاگ", group: "blog", type: "textarea" },
+  "blog.showSearch": { label: "نمایش جستجو در وبلاگ", group: "blog", type: "boolean" },
+  "blog.showNewsletter": { label: "نمایش خبرنامه در وبلاگ", group: "blog", type: "boolean" },
+  "blog.newsletterTitle": { label: "عنوان بخش خبرنامه", group: "blog" },
+  "blog.newsletterSubtitle": { label: "زیرعنوان خبرنامه", group: "blog", type: "textarea" },
+  "blog.postsPerPage": { label: "تعداد مقاله در هر صفحه", group: "blog", ltr: true },
   // contact
   "contact.phone": { label: "تلفن", group: "contact", ltr: true },
   "contact.phone2": { label: "تلفن دوم", group: "contact", ltr: true },
