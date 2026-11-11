@@ -36,15 +36,21 @@ export function Navbar() {
   const [navItems, setNavItems] = useState<NavItem[]>([]);
   const [trustItems, setTrustItems] = useState<{ icon: any; text: string }[]>(TRUST_ITEMS);
   const [trustEnabled, setTrustEnabled] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string>("");
+  const [siteTitle, setSiteTitle] = useState<string>("صحت محاسب");
+  const [siteTagline, setSiteTagline] = useState<string>("نماینده رسمی سپیدار و دشت");
   const pathname = usePathname();
   const { setMenu: setMenuStore, openAuth, openPanel, user, setUser } = useUI();
 
-  // Load trust bar items from admin settings
+  // Load trust bar items + site logo/title from admin settings
   useEffect(() => {
     api<{ settings: Record<string, string> }>("/api/public/site").then((r) => {
       if (!r.ok || !r.data?.settings) return;
       const s = r.data.settings;
       setTrustEnabled(s["trustbar.enabled"] === "true");
+      if (s["site.logoUrl"]) setLogoUrl(s["site.logoUrl"]);
+      if (s["site.title"]) setSiteTitle(s["site.title"]);
+      if (s["site.tagline"]) setSiteTagline(s["site.tagline"]);
       const items: { icon: any; text: string }[] = [];
       for (let i = 1; i <= 6; i++) {
         const text = s[`trustbar.item${i}_text`];
@@ -103,13 +109,13 @@ export function Navbar() {
       {trustEnabled && trustItems.length > 0 && (
       <div className={`hidden md:block transition-all duration-500 overflow-hidden ${scrolled ? "h-0 opacity-0" : "h-9 opacity-100"}`}>
         <div className="container mx-auto px-4">
-          <div className="rounded-t-2xl bg-gradient-brand/95 backdrop-blur-md flex items-center overflow-hidden h-9">
+          <div className="rounded-t-2xl bg-gradient-brand/95 backdrop-blur-md flex items-center overflow-hidden h-9 ring-1 ring-inset ring-black/5 dark:ring-white/10">
             <div className="flex items-center gap-6 px-3 py-1.5 whitespace-nowrap animate-marquee">
               {[...trustItems, ...trustItems, ...trustItems, ...trustItems].map((t, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white dark:text-white">
-                  <t.icon className="h-3.5 w-3.5 text-amber-300 dark:text-amber-300 flex-shrink-0" />
+                <span key={i} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-black dark:text-white">
+                  <t.icon className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300 flex-shrink-0" />
                   {t.text}
-                  <span className="mx-3 text-white/30 dark:text-white/30">•</span>
+                  <span className="mx-3 text-black/40 dark:text-white/40">•</span>
                 </span>
               ))}
             </div>
@@ -126,16 +132,30 @@ export function Navbar() {
         >
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
-            <div className="relative h-10 w-10 rounded-xl bg-gradient-brand grid place-items-center shadow-glow group-hover:scale-105 transition-transform">
-              <span className="absolute inset-0 rounded-xl bg-gradient-brand opacity-50 blur-md -z-10 group-hover:opacity-80 transition-opacity" />
-              <svg width="22" height="22" viewBox="0 0 64 64" fill="none" aria-hidden>
-                <path d="M20 40 L28 28 L36 36 L48 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                <circle cx="48" cy="22" r="4.5" fill="#e8b94a" />
-              </svg>
-            </div>
+            {logoUrl ? (
+              /* ===== Uploaded logo from CMS settings (site.logoUrl) ===== */
+              <div className="relative h-10 w-10 rounded-xl overflow-hidden grid place-items-center bg-background/40 ring-1 ring-border/60 group-hover:scale-105 transition-transform flex-shrink-0">
+                <span className="absolute inset-0 rounded-xl bg-gradient-brand opacity-50 blur-md -z-10 group-hover:opacity-80 transition-opacity" />
+                <img
+                  src={logoUrl}
+                  alt={siteTitle}
+                  className="relative h-full w-full object-contain p-1"
+                  draggable={false}
+                />
+              </div>
+            ) : (
+              /* ===== Default logo (no custom logo uploaded) ===== */
+              <div className="relative h-10 w-10 rounded-xl bg-gradient-brand grid place-items-center shadow-glow group-hover:scale-105 transition-transform">
+                <span className="absolute inset-0 rounded-xl bg-gradient-brand opacity-50 blur-md -z-10 group-hover:opacity-80 transition-opacity" />
+                <svg width="22" height="22" viewBox="0 0 64 64" fill="none" aria-hidden>
+                  <path d="M20 40 L28 28 L36 36 L48 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <circle cx="48" cy="22" r="4.5" fill="#e8b94a" />
+                </svg>
+              </div>
+            )}
             <div className="leading-tight">
-              <div className="font-display text-base font-extrabold text-foreground">صحت محاسب</div>
-              <div className="text-[10px] text-muted-foreground font-medium hidden sm:block">نماینده رسمی سپیدار و دشت</div>
+              <div className="font-display text-base font-extrabold text-foreground">{siteTitle}</div>
+              <div className="text-[10px] text-muted-foreground font-medium hidden sm:block">{siteTagline}</div>
             </div>
           </Link>
 

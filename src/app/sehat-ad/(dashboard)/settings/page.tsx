@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Settings, Loader2, Save, Globe, Phone, Share2, Search as SeoIcon, Sparkles, Shield, UserCog, Database, Palette, Zap, CheckCircle2, XCircle, Loader, ShieldCheck, Newspaper } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Settings, Loader2, Save, Globe, Phone, Share2, Search as SeoIcon, Sparkles, Shield, UserCog, Database, Palette, Zap, CheckCircle2, XCircle, Loader, ShieldCheck, Newspaper, Upload, Image as ImageIcon, X } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { PageHeader, AdminCard, Input, Textarea } from "@/components/admin/ui";
@@ -30,7 +30,6 @@ const KEY_LABELS: Record<string, { label: string; type?: "text" | "textarea" | "
   "site.title": { label: "عنوان سایت", group: "general" },
   "site.tagline": { label: "شعار", group: "general" },
   "site.description": { label: "توضیحات کوتاه", group: "general", type: "textarea" },
-  "site.logoUrl": { label: "آدرس لوگو", group: "general", ltr: true },
   "site.announcement": { label: "پیام اعلان", group: "general", hint: "نوار اعلان بالای سایت" },
   "site.announcementActive": { label: "فعال‌سازی اعلان", group: "general", type: "boolean" },
   // theme (color picker)
@@ -164,6 +163,15 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2 pb-3 border-b border-border">
                       {(() => { const T = TABS.find((t) => t.id === tab)!; return <><T.icon className="h-5 w-5 text-primary" /><h3 className="font-bold text-foreground">{T.label}</h3></>; })()}
                     </div>
+
+                    {/* ===== Logo uploader (only on general tab) ===== */}
+                    {tab === "general" && (
+                      <LogoUploader
+                        value={settings["site.logoUrl"] || ""}
+                        onChange={(url) => setSettings({ ...settings, "site.logoUrl": url })}
+                      />
+                    )}
+
                     <div className="grid sm:grid-cols-2 gap-4">
                       {keysForTab.map((k) => {
                         const meta = KEY_LABELS[k];
@@ -208,7 +216,6 @@ function AdminCredentials() {
   const [newPw, setNewPw] = useState("");
   const [savingU, setSavingU] = useState(false);
   const [savingP, setSavingP] = useState(false);
-
   useEffect(() => {
     api<{ settings: Record<string, string> }>("/api/admin/settings").then((r) => {
       if (r.ok && r.data) setUsername(r.data.settings["admin.username"] || "");
@@ -250,6 +257,182 @@ function AdminCredentials() {
       <div className="rounded-xl bg-amber-400/5 border border-amber-400/20 p-4 text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
         <Shield className="h-5 w-5 flex-shrink-0 mt-0.5" />
         <div>تغییر نام کاربری یا رمز عبور بلافاصله اعمال می‌شود. برای ورود بعدی از اطلاعات جدید استفاده کنید.</div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// LogoUploader — professional file-picker upload for site logo
+// ============================================================
+// - Click to pick (file picker dialog)
+// - Drag & drop support
+// - Image preview (with on-page delete)
+// - 1:1 square crop is NOT applied — we just display the uploaded
+//   image as-is; admin should upload a square or rounded logo.
+// - The selected URL is stored as `site.logoUrl` setting and is
+//   used both in the navbar AND as the site favicon (injected at
+//   runtime via BrandFaviconInjector).
+// ============================================================
+function LogoUploader({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const doUpload = async (file: File) => {
+    // Client-side validation
+    if (!file.type.startsWith("image/")) {
+      toast.error("فقط فایل تصویری مجاز است.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("حجم تصویر باید کمتر از ۸ مگابایت باشد.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("label", "logo");
+      const resp = await fetch("/api/admin/upload", { method: "POST", body: formData });
+      const json = await resp.json();
+      if (json.ok && json.data?.url) {
+        onChange(json.data.url);
+        toast.success("لوگو بارگذاری شد. برای اعمال روی سایت، تنظیمات را ذخیره کنید.");
+      } else {
+        toast.error(json.error || "خطا در بارگذاری لوگو.");
+      }
+    } catch {
+      toast.error("خطا در ارتباط با سرور.");
+    }
+    setUploading(false);
+  };
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) doUpload(file);
+    // reset so picking the same file again still triggers change
+    e.target.value = "";
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) doUpload(file);
+  };
+
+  const hasLogo = !!value && value !== "/favicon.svg";
+
+  return (
+    <div className="rounded-2xl border border-border bg-background/40 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <ImageIcon className="h-4 w-4 text-primary" />
+        <h4 className="font-bold text-foreground text-sm">لوگوی سایت</h4>
+        <span className="text-xs text-muted-foreground">— لوگوی اصلی سایت (و فاوآیکون)</span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        {/* Preview area */}
+        <div
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          className={cn(
+            "relative grid place-items-center cursor-pointer rounded-2xl border-2 border-dashed transition-all overflow-hidden bg-gradient-to-br from-muted/40 to-muted/10",
+            dragOver ? "border-primary bg-primary/5 scale-[1.02]" : "border-border hover:border-primary/40",
+            hasLogo ? "h-28 w-28 sm:h-32 sm:w-32" : "h-32 w-full sm:w-72"
+          )}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inputRef.current?.click(); } }}
+          aria-label="بارگذاری لوگو"
+        >
+          {uploading ? (
+            <div className="flex flex-col items-center justify-center gap-2 text-primary">
+              <Loader2 className="h-7 w-7 animate-spin" />
+              <span className="text-xs font-bold">در حال بارگذاری…</span>
+            </div>
+          ) : hasLogo ? (
+            <>
+              {/* Logo preview — checkerboard background to reveal transparency */}
+              <div className="absolute inset-0 checker-bg opacity-30" aria-hidden />
+              <img src={value} alt="پیش‌نمایش لوگو" className="relative max-h-full max-w-full object-contain p-2" />
+              <button
+                onClick={(e) => { e.stopPropagation(); onChange(""); }}
+                className="absolute top-1.5 left-1.5 grid place-items-center h-7 w-7 rounded-full bg-rose-500/90 text-white hover:bg-rose-500 transition-colors shadow-md z-10"
+                aria-label="حذف لوگو"
+                title="حذف لوگو"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <span className="absolute bottom-1 right-1.5 text-[10px] font-bold text-foreground/80 bg-background/80 backdrop-blur px-2 py-0.5 rounded-md z-10">
+                پیش‌نمایش
+              </span>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-6 px-4 text-center">
+              <Upload className="h-7 w-7" />
+              <div>
+                <div className="text-sm font-bold text-foreground">کلیک کنید یا فایل را بکشید</div>
+                <div className="text-xs mt-1">PNG, SVG, WebP, JPG — حداکثر ۸MB</div>
+                <div className="text-[11px] mt-1 text-muted-foreground/70">بهتر است تصویر مربع و شفاف باشد</div>
+              </div>
+            </div>
+          )}
+          <input ref={inputRef} type="file" accept="image/*" onChange={onPick} className="hidden" />
+        </div>
+
+        {/* Info / actions */}
+        <div className="flex-1 min-w-0 space-y-2">
+          {hasLogo && (
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">آدرس ذخیره‌شده:</div>
+              <div className="flex items-center gap-2">
+                <code dir="ltr" className="text-xs font-mono text-primary bg-primary/5 border border-primary/20 rounded-md px-2 py-1 break-all flex-1">
+                  {value}
+                </code>
+                <button
+                  onClick={() => navigator.clipboard?.writeText(value).then(() => toast.success("کپی شد."))}
+                  className="grid place-items-center h-8 w-8 rounded-lg border border-border hover:border-primary/40 hover:text-primary transition-colors flex-shrink-0"
+                  title="کپی آدرس"
+                  aria-label="کپی آدرس"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              className="bg-gradient-brand text-white shadow-glow rounded-xl"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Upload className="h-4 w-4 ml-1" />}
+              {uploading ? "در حال بارگذاری..." : "انتخاب فایل"}
+            </Button>
+            {hasLogo && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onChange("/favicon.svg")}
+                className="rounded-xl"
+                title="بازگشت به لوگوی پیش‌فرض"
+              >
+                بازگشت به پیش‌فرض
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            این لوگو در نوار بالای سایت و به‌عنوان فاوآیکون (آیکن مرورگر) استفاده می‌شود.
+            برای اعمال، روی «ذخیره تنظیمات» بزنید.
+          </p>
+        </div>
       </div>
     </div>
   );

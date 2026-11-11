@@ -3,41 +3,72 @@
 import { useEffect } from "react";
 import { api } from "@/lib/api-client";
 
-// Fetches brand colors from the admin settings API and injects them as CSS
-// variable overrides on :root and .dark. This lets the admin change the
-// site's color scheme from the settings panel without redeploying.
+// Fetches brand colors + site logo from the admin settings API and injects
+// them as CSS variable overrides (colors) + dynamic favicon/logo (favicon
+// link tags in <head>). This lets the admin change the site's color scheme
+// AND logo from the settings panel without redeploying.
 export function BrandThemeInjector() {
   useEffect(() => {
     api<{ settings: Record<string, string> }>("/api/public/site").then((r) => {
       if (!r.ok || !r.data?.settings) return;
-      const brand = r.data.settings["site.brandColor"];
-      const accent = r.data.settings["site.accentColor"];
-      if (!brand && !accent) return;
+      const s = r.data.settings;
+      const brand = s["site.brandColor"];
+      const accent = s["site.accentColor"];
+      const logoUrl = s["site.logoUrl"];
 
       const root = document.documentElement;
-      // Convert hex to oklch is complex — instead, we override the
-      // --brand / --gold / --primary variables directly with hex-based
-      // values by creating a <style> tag.
-      const styleId = "brand-theme-override";
-      let style = document.getElementById(styleId) as HTMLStyleElement | null;
-      if (!style) {
-        style = document.createElement("style");
-        style.id = styleId;
-        document.head.appendChild(style);
+
+      // ===== 1. Brand color overrides =====
+      if (brand || accent) {
+        const styleId = "brand-theme-override";
+        let style = document.getElementById(styleId) as HTMLStyleElement | null;
+        if (!style) {
+          style = document.createElement("style");
+          style.id = styleId;
+          document.head.appendChild(style);
+        }
+        const lines: string[] = [];
+        if (brand) {
+          // For light mode
+          lines.push(`:root { --brand: ${brand}; --brand-2: ${brand}; --primary: ${brand}; --ring: ${brand}; --sidebar-primary: ${brand}; --sidebar-ring: ${brand}; }`);
+          // For dark mode — slightly lighten for visibility
+          lines.push(`.dark { --brand: ${brand}; --brand-2: ${brand}; --primary: ${brand}; --ring: ${brand}; --sidebar-primary: ${brand}; --sidebar-ring: ${brand}; }`);
+        }
+        if (accent) {
+          lines.push(`:root { --gold: ${accent}; --accent: ${accent}; }`);
+          lines.push(`.dark { --gold: ${accent}; --accent: ${accent}; }`);
+        }
+        style.textContent = lines.join("\n");
       }
 
-      const lines: string[] = [];
-      if (brand) {
-        // For light mode
-        lines.push(`:root { --brand: ${brand}; --brand-2: ${brand}; --primary: ${brand}; --ring: ${brand}; --sidebar-primary: ${brand}; --sidebar-ring: ${brand}; }`);
-        // For dark mode — slightly lighten for visibility
-        lines.push(`.dark { --brand: ${brand}; --brand-2: ${brand}; --primary: ${brand}; --ring: ${brand}; --sidebar-primary: ${brand}; --sidebar-ring: ${brand}; }`);
+      // ===== 2. Favicon injection (uses uploaded logo, if present) =====
+      // We update (or create) <link rel="icon"> tags so the browser tab
+      // shows the admin-uploaded logo. We use a key attribute to identify
+      // our injected links and avoid duplicates on re-renders.
+      if (logoUrl) {
+        const KEY = "data-sm-favicon";
+        // remove any previously-injected favicon links
+        document.querySelectorAll(`link[${KEY}]`).forEach((el) => el.remove());
+        // build the absolute URL (favicon needs an absolute URL)
+        let abs = logoUrl;
+        if (logoUrl.startsWith("/")) {
+          abs = window.location.origin + logoUrl;
+        }
+        // Standard icon (32x32 fallback)
+        const ico = document.createElement("link");
+        ico.setAttribute("rel", "icon");
+        ico.setAttribute("type", "image/svg+xml");
+        ico.setAttribute("href", abs);
+        ico.setAttribute(KEY, "1");
+        document.head.appendChild(ico);
+        // Apple touch icon (higher-res for iOS)
+        const apple = document.createElement("link");
+        apple.setAttribute("rel", "apple-touch-icon");
+        apple.setAttribute("href", abs);
+        apple.setAttribute(KEY, "1");
+        document.head.appendChild(apple);
+        // msapplication TileColor — keep as-is from layout viewport
       }
-      if (accent) {
-        lines.push(`:root { --gold: ${accent}; --accent: ${accent}; }`);
-        lines.push(`.dark { --gold: ${accent}; --accent: ${accent}; }`);
-      }
-      style.textContent = lines.join("\n");
     });
   }, []);
   return null;

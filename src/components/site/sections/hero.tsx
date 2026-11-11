@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   TrendingUp, ShieldCheck, FileText, Calculator, Receipt, ArrowLeft, Sparkles,
   BadgeCheck, Users2, Clock, Wallet, Activity, CheckCircle2, Building2,
-  PhoneCall, Zap,
+  PhoneCall, Zap, Calendar,
 } from "lucide-react";
 import { Reveal } from "@/components/site/reveal";
 import { useUI } from "@/lib/ui-store";
@@ -61,8 +61,26 @@ export function Hero() {
   };
   const onLeave = () => setTilt({ x: 0, y: 0 });
 
-  // chart bars
-  const bars = [38, 52, 34, 66, 58, 80, 72, 92, 68, 88];
+  // chart bars — monthly Profit & Loss for 1404 (12 Persian months)
+  // Positive values = profit (green), negative values = loss (rose).
+  // Values are in billion Tomans (display-only, demo data).
+  const pnMonths = [
+    { label: "فرو", value: 0.42 },
+    { label: "ارد", value: 0.65 },
+    { label: "خرد", value: 0.38 },
+    { label: "تیر", value: -0.18 },   // loss
+    { label: "مرد", value: 0.72 },
+    { label: "شهر", value: 0.94 },
+    { label: "مهر", value: 1.12 },
+    { label: "آبا", value: 0.88 },
+    { label: "آذر", value: 1.34 },
+    { label: "دی",   value: 1.58 },
+    { label: "بهم", value: 1.21 },
+    { label: "اسف", value: 1.74 },
+  ];
+  const pnMax = Math.max(...pnMonths.map((m) => Math.abs(m.value)));
+  const pnTotal = pnMonths.reduce((sum, m) => sum + m.value, 0);
+  const pnPositiveCount = pnMonths.filter((m) => m.value >= 0).length;
 
   return (
     <section ref={ref} className="relative min-h-screen flex items-center pt-36 md:pt-40 pb-20 overflow-hidden" id="home">
@@ -352,30 +370,92 @@ export function Hero() {
                 </div>
               </div>
 
-              {/* chart with gridlines + area */}
-              <div className="relative h-36 rounded-2xl bg-gradient-to-br from-primary/8 to-amber-400/5 p-3 overflow-hidden border border-border/30">
-                {/* horizontal gridlines */}
-                <div className="absolute inset-3 flex flex-col justify-between pointer-events-none">
-                  {[0, 1, 2, 3].map((i) => (
-                    <div key={i} className="h-px bg-foreground/5" />
-                  ))}
+              {/* ===== Profit & Loss 1404 monthly chart ===== */}
+              <div className="relative rounded-2xl bg-gradient-to-br from-primary/8 to-amber-400/5 p-3 overflow-hidden border border-border/30">
+                {/* header: label + summary pill */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[11px] font-bold text-foreground">{h("dash_chart_label", "صورت سود و زیان ۱۴۰۴")}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] font-bold bg-background/70 backdrop-blur px-2 py-0.5 rounded-md border border-border/40">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">ماهانه</span>
+                  </div>
                 </div>
-                {/* chart bars */}
-                <div className="absolute inset-0 flex items-end gap-1 px-3 pb-3 pt-6">
-                  {bars.map((bh, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-0.5 group">
-                      <div
-                        className="w-full rounded-t-md bg-gradient-to-t from-primary/40 to-primary transition-all duration-700 group-hover:from-primary/60 group-hover:to-amber-400"
-                        style={{ height: `${bh}%`, transitionDelay: `${0.4 + i * 0.07}s` }}
-                      />
+
+                {/* chart canvas — bidirectional (profit up, loss down) */}
+                <div className="relative h-32 px-1">
+                  {/* horizontal gridlines (3 levels above zero) */}
+                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div key={i} className="h-px bg-foreground/[0.06]" />
+                    ))}
+                  </div>
+                  {/* zero baseline — centered slightly below middle (since most values are positive) */}
+                  <div className="absolute left-0 right-0 h-px bg-foreground/20" style={{ bottom: "26%" }} aria-hidden />
+                  {/* month bars */}
+                  <div className="absolute inset-0 flex items-stretch justify-between gap-0.5 pb-5 pt-1">
+                    {pnMonths.map((m, i) => {
+                      const isProfit = m.value >= 0;
+                      // Scale: 100% height corresponds to pnMax absolute value
+                      const heightPct = (Math.abs(m.value) / pnMax) * 100;
+                      // Position bar relative to baseline (26% from bottom)
+                      // For profit: bar grows upward from baseline
+                      // For loss: bar grows downward from baseline
+                      return (
+                        <div key={i} className="relative flex-1 flex flex-col items-center justify-end group">
+                          {/* tooltip on hover */}
+                          <div className="absolute -top-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none whitespace-nowrap">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md text-white ${isProfit ? "bg-emerald-600" : "bg-rose-600"}`} dir="ltr">
+                              {m.value > 0 ? "+" : ""}{m.value.toFixed(2)} B
+                            </span>
+                          </div>
+                          {/* the bar itself — anchored to baseline */}
+                          <div
+                            className="absolute left-1/2 -translate-x-1/2 w-[70%] rounded-md transition-all duration-700 ease-out group-hover:w-[85%]"
+                            style={{
+                              height: `${heightPct * 0.74}%`, // 0.74 accounts for the chart not being 100% of container
+                              bottom: isProfit ? "26%" : "auto",
+                              top: isProfit ? "auto" : "74%",
+                              background: isProfit
+                                ? "linear-gradient(to top, color-mix(in oklab, var(--brand) 50%, transparent), var(--brand))"
+                                : "linear-gradient(to bottom, color-mix(in oklab, #f43f5e 50%, transparent), #f43f5e)",
+                              transitionDelay: `${0.3 + i * 0.05}s`,
+                              boxShadow: isProfit
+                                ? "0 0 8px color-mix(in oklab, var(--brand) 40%, transparent)"
+                                : "0 0 8px color-mix(in oklab, #f43f5e 40%, transparent)",
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* month labels */}
+                  <div className="absolute inset-x-0 bottom-0 flex justify-between px-1 pb-0">
+                    {pnMonths.map((m, i) => (
+                      <div key={i} className="flex-1 text-center">
+                        <span className="text-[8px] text-muted-foreground/80 font-medium">{m.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* live tooltip marker (decorative — pointed at highest month) */}
+                  <div className="absolute top-2 left-3 flex flex-col items-start" aria-hidden>
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 heavy-only-md animate-pulse-soft" />
+                      <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400">پیشرو</span>
                     </div>
-                  ))}
+                  </div>
                 </div>
-                {/* tooltip marker (static on mobile, animated pulse on desktop) */}
-                <div className="absolute top-1/2 right-6 -translate-y-1/2 flex flex-col items-center">
-                  <div className="w-2 h-2 rounded-full bg-amber-400 ring-4 ring-amber-400/20 heavy-only-md animate-pulse-soft" />
+
+                {/* summary footer — total P&L for the year */}
+                <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground font-semibold">سود خالص سال</span>
+                  <span className={`flex items-center gap-1 font-black ${pnTotal >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {pnTotal >= 0 ? <TrendingUp className="h-3 w-3" /> : <Activity className="h-3 w-3" />}
+                    <span dir="ltr">{pnTotal >= 0 ? "+" : ""}{pnTotal.toFixed(2)} B تومان</span>
+                  </span>
                 </div>
-                <div className="absolute top-2 right-3 text-[10px] font-bold text-muted-foreground bg-background/60 backdrop-blur px-2 py-0.5 rounded-md">{h("dash_chart_label", "درآمد ۱۴۰۳")}</div>
               </div>
 
               {/* KPI row */}

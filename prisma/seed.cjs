@@ -88,7 +88,7 @@ if (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 12) throw new Error('ADMIN_PASSWO
       { section: 'hero', key: 'dash_title', value: 'داشبورد مالی' },
       { section: 'hero', key: 'dash_subtitle', value: 'صحت محاسب' },
       { section: 'hero', key: 'dash_status', value: 'سالم' },
-      { section: 'hero', key: 'dash_chart_label', value: 'درآمد ۱۴۰۳' },
+      { section: 'hero', key: 'dash_chart_label', value: 'صورت سود و زیان ۱۴۰۴' },
       { section: 'hero', key: 'dash_kpi1_label', value: 'درآمد' },
       { section: 'hero', key: 'dash_kpi1_value', value: '۲.۴B' },
       { section: 'hero', key: 'dash_kpi2_label', value: 'هزینه' },
@@ -165,6 +165,109 @@ if (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 12) throw new Error('ADMIN_PASSWO
     }
 
     console.log('✅ Seed complete (idempotent — admin edits preserved)');
+
+    // ---- Migrate any old /articles nav-items → /blog (one-time) ----
+    try {
+      const oldNav = await db.navItem.findFirst({ where: { href: '/articles' } });
+      if (oldNav) {
+        await db.navItem.update({ where: { id: oldNav.id }, data: { href: '/blog' } });
+        console.log('  → Migrated nav-item /articles → /blog');
+      }
+    } catch (e) {
+      console.warn('  → nav-item migration skipped:', e.message);
+    }
+
+    // ---- Articles (only if table is empty) ----
+    const artCount = await db.article.count();
+    if (artCount === 0) {
+      console.log('  → Seeding articles...');
+      const now = new Date();
+      const day = 24 * 60 * 60 * 1000;
+      const articles = [
+        {
+          slug: 'sepidar-vs-dasht-comparison',
+          title: 'سپیدار یا دشت؟ راهنمای انتخاب نرم‌افزار حسابداری مناسب کسب‌وکار شما',
+          excerpt: 'در این مقاله تفاوت‌های نرم‌افزار سپیدار و دشت را بررسی می‌کنیم و به شما کمک می‌کنیم بهترین انتخاب را برای نوع کسب‌وکار خود داشته باشید.',
+          content: '## مقدمه\n\nانتخاب نرم‌افزار حسابداری مناسب یکی از مهم‌ترین تصمیمات مالی هر کسب‌وکار است. دو محصول برجسته همکاران سیستم یعنی **سپیدار** و **دشت** هرکدام برای دسته خاصی از کسب‌وکارها طراحی شده‌اند.\n\n## سپیدار — حسابداری شرکتی\n\nسپیدار یک نرم‌افزار حسابداری جامع برای شرکت‌های خدماتی، تولیدی، تجاری و پیمانکاری است.\n\n## دشت — راهکار فروشگاهی\n\nدشت برای مدیریت فروشگاه‌های خرده‌فروشی و زنجیره‌ای طراحی شده است.\n\n## نتیجه‌گیری\n\nاگر شرکت خدماتی، تولیدی یا پیمانکاری دارید، **سپیدار** انتخاب بهتری است. اگر صاحب فروشگاه هستید، **دشت** دقیقاً برای شما طراحی شده است.',
+          category: 'نرم‌افزار حسابداری',
+          tags: 'سپیدار,دشت,نرم‌افزار حسابداری,همکاران سیستم',
+          authorName: 'موسسه صحت محاسب',
+          status: 'PUBLISHED',
+          featured: true,
+          readingMinutes: 6,
+          publishedAt: new Date(now.getTime() - 2 * day),
+        },
+        {
+          slug: 'tax-optimization-1404-guide',
+          title: 'راهنمای جامع بهینه‌سازی مالیاتی در سال ۱۴۰۴',
+          excerpt: 'آخرین تغییرات قانون مالیاتی ۱۴۰۴، بخشنامه‌های جدید و راهکارهای قانونی کاهش بار مالیاتی را در این مقاله بررسی می‌کنیم.',
+          content: '## تغییرات مهم مالیاتی سال ۱۴۰۴\n\nسال ۱۴۰۴ با تغییرات مهمی در قوانین مالیاتی همراه بوده است.\n\n## ۱. معافیت‌های مالیاتی جدید\n\n- معافیت سود حساب‌های پس‌انداز ویژه\n- کاهش نرخ مالیاتی کسب‌وکارهای دانش‌بنیان\n\n## ۲. ساماندهی صورت‌های مالی\n\nارائه صورت‌های مالی شفاف، شرط استفاده از معافیت‌ها است.\n\n## ۳. راهکارهای قانونی کاهش مالیات\n\n1. استفاده کامل از معافیت‌های سود سهام\n2. زمان‌بندی هوشمند خرید دارایی‌های مشمول استهلاک\n3. استفاده از کسورات مالیاتی پژوهش و توسعه\n\n## نتیجه‌گیری\n\nبهینه‌سازی مالیاتی یک فرآیند مداوم است.',
+          category: 'مالیات',
+          tags: 'مالیات,بهینه‌سازی مالیاتی,۱۴۰۴',
+          authorName: 'موسسه صحت محاسب',
+          status: 'PUBLISHED',
+          featured: true,
+          readingMinutes: 8,
+          publishedAt: new Date(now.getTime() - 9 * day),
+        },
+        {
+          slug: 'financial-statements-101',
+          title: 'صورت‌های مالی چیست و چرا برای کسب‌وکار شما حیاتی است؟',
+          excerpt: 'ترازنامه، صورت سود و زیان و صورت جریان نقدینگی؛ سه گزارش اساسی که وضعیت مالی کسب‌وکار شما را نشان می‌دهند.',
+          content: '## صورت‌های مالی چیست؟\n\nصورت‌های مالی گزارش‌های استانداردی هستند که تصویری کامل از وضعیت مالی ارائه می‌دهند.\n\n### ۱. ترازنامه\n\nترازنامه دارایی‌ها، بدهی‌ها و سرمایه را نشان می‌دهد.\n\n### ۲. صورت سود و زیان\n\nاین گزارش درآمد، هزینه و سود/زیان دوره را نشان می‌دهد.\n\n### ۳. صورت جریان نقدینگی\n\nجریان نقد ورودی و خروجی را نشان می‌دهد.\n\n## نتیجه‌گیری\n\nخوانش صورت‌های مالی مهارتی حیاتی برای هر مدیر مالی است.',
+          category: 'حسابداری',
+          tags: 'صورت‌های مالی,ترازنامه,سود و زیان',
+          authorName: 'موسسه صحت محاسب',
+          status: 'PUBLISHED',
+          featured: false,
+          readingMinutes: 5,
+          publishedAt: new Date(now.getTime() - 16 * day),
+        },
+        {
+          slug: 'small-business-accounting-mistakes',
+          title: '۷ اشتباه رایج حسابداری در کسب‌وکارهای کوچک',
+          excerpt: 'از عدم تفکیک حساب‌های شخصی و تجاری تا دیررسیدن به سر موعد مالیاتی؛ این هفت اشتباه می‌توانند به کسب‌وکار شما آسیب جدی بزنند.',
+          content: '## اشتباهات رایج حسابداری\n\n### ۱. عدم تفکیک حساب شخصی و تجاری\n\nمخلوط کردن هزینه‌های شخصی و تجاری چالش‌های مالیاتی ایجاد می‌کند.\n\n### ۲. دیرکرد در ثبت اسناد\n\nروزانه ثبت کنید.\n\n### ۳. نداشتن بودجه\n\nبدون بودجه نمی‌توان جریان نقد را مدیریت کرد.\n\n## نتیجه‌گیری\n\nبا سپردن حسابداری به تیمی حرفه‌ای، می‌توانید این اشتباهات را پشت سر بگذارید.',
+          category: 'مدیریت مالی',
+          tags: 'حسابداری,کسب‌وکار کوچک',
+          authorName: 'موسسه صحت محاسب',
+          status: 'PUBLISHED',
+          featured: false,
+          readingMinutes: 5,
+          publishedAt: new Date(now.getTime() - 25 * day),
+        },
+        {
+          slug: 'payroll-management-best-practices',
+          title: 'مدیریت حقوق و دستمزد: بهترین شیوه‌ها در سال ۱۴۰۴',
+          excerpt: 'نحوه محاسبه حقوق، بیمه، مالیات حقوق و مدیریت فیش حقوقی کارکنان؛ راهنمای گام‌به‌گام.',
+          content: '## اهمیت مدیریت حقوق و دستمزد\n\nمدیریت حقوق و دستمزد از حساس‌ترین فرآیندهای هر کسب‌وکار است.\n\n## مراحل مدیریت حقوق و دستمزد\n\n### ۱. ثبت اطلاعات اولیه کارکنان\n\n### ۲. محاسبه حقوق پایه و مزایا\n\n### ۳. کسر کسورات قانونی\n\n- بیمه تأمین اجتماعی\n- مالیات حقوق پلکانی\n\n### ۴. صدور فیش حقوقی و گزارش‌های ماهانه\n\n## نتیجه‌گیری\n\nمدیریت حقوق و دستمزد نیازمند دقت بالا و آشنایی با آخرین قوانین است.',
+          category: 'حقوق و دستمزد',
+          tags: 'حقوق و دستمزد,بیمه,مالیات حقوق',
+          authorName: 'موسسه صحت محاسب',
+          status: 'PUBLISHED',
+          featured: false,
+          readingMinutes: 7,
+          publishedAt: new Date(now.getTime() - 35 * day),
+        },
+        {
+          slug: 'inventory-management-accounting',
+          title: 'مدیریت انبار از نگاه حسابداری؛ از رسید تا کسر فاکتور',
+          excerpt: 'ثبت دقیق ورود و خروج کالا، انبارگردانی و تطبیق با صورت‌های مالی.',
+          content: '## حسابداری انبار\n\nانبار قلب تپنده بسیاری از کسب‌وکارهاست.\n\n## مراحل کلیدی حسابداری انبار\n\n### ۱. تعریف کالا با کد و بارکد\n\n### ۲. ثبت رسید و حواله\n\n### ۳. ارزش‌گذاری موجودی\n\nروش‌های رایج: FIFO، LIFO، میانگین وزنی\n\n### ۴. انبارگردانی دوره‌ای\n\n### ۵. تطبیق انبار با حسابداری\n\n## نتیجه‌گیری\n\nمدیریت صحیح انبار نیازمند سیستم دقیق و کار تیمی منسجم است.',
+          category: 'حسابداری',
+          tags: 'مدیریت انبار,حسابداری انبار,انبارگردانی',
+          authorName: 'موسسه صحت محاسب',
+          status: 'PUBLISHED',
+          featured: false,
+          readingMinutes: 6,
+          publishedAt: new Date(now.getTime() - 48 * day),
+        },
+      ];
+      for (const a of articles) { await db.article.create({ data: a }); }
+      console.log('  → Seeded ' + articles.length + ' PUBLISHED articles');
+    } else {
+      console.log('  → Articles already populated (' + artCount + ' rows), skipping');
+    }
   } catch (e) {
     console.error('❌ Seed FAILED:', e.message);
     console.error('   Container will NOT start.');

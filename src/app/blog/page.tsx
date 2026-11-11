@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { Clock, Send, Search, SearchX, ArrowLeft, Mail, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import {
+  Clock, Newspaper, Send, Search, SearchX, ArrowLeft, Mail,
+  Calendar, ChevronLeft, ChevronRight, Eye, Sparkles, TrendingUp, Hash,
+} from "lucide-react";
 import { api } from "@/lib/api-client";
 import { Reveal } from "@/components/site/reveal";
 import { PageHeader } from "@/components/site/page-header";
@@ -13,6 +17,7 @@ type Article = {
   id: string; slug: string; title: string; excerpt: string | null;
   coverUrl: string | null; category: string | null; publishedAt: string | null;
   readingMinutes: number | null; featured: boolean;
+  authorName?: string | null; tags?: string | null; views?: number;
 };
 
 type BlogSettings = {
@@ -25,12 +30,16 @@ function faDate(d: string | null) {
   try { return new Intl.DateTimeFormat("fa-IR", { dateStyle: "long" }).format(new Date(d)); } catch { return ""; }
 }
 
-export default function BlogPage() {
+function BlogPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [items, setItems] = useState<Article[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [query, setQuery] = useState("");
-  const [activeQuery, setActiveQuery] = useState("");
-  const [category, setCategory] = useState("");
+  const [query, setQuery] = useState(searchParams.get("q") || "");
+  const [activeQuery, setActiveQuery] = useState(searchParams.get("q") || "");
+  const [category, setCategory] = useState(searchParams.get("category") || "");
   const [categories, setCategories] = useState<string[]>([]);
   const [blog, setBlog] = useState<BlogSettings>({
     title: "مجله مالی صحت محاسب",
@@ -43,7 +52,24 @@ export default function BlogPage() {
   const [email, setEmail] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+
+  // Sync category from URL on mount and when URL changes
+  useEffect(() => {
+    const urlCat = searchParams.get("category") || "";
+    const urlQ = searchParams.get("q") || "";
+    setCategory(urlCat);
+    setQuery(urlQ);
+    setActiveQuery(urlQ);
+  }, [searchParams]);
+
+  // Update URL when category/query changes (shareable links)
+  const updateUrl = (newCat: string, newQ: string) => {
+    const params = new URLSearchParams();
+    if (newCat) params.set("category", newCat);
+    if (newQ) params.set("q", newQ);
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+  };
 
   // Load blog settings
   useEffect(() => {
@@ -63,6 +89,7 @@ export default function BlogPage() {
     });
   }, []);
 
+  const [total, setTotal] = useState(0);
   const [loadError, setLoadError] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +116,17 @@ export default function BlogPage() {
   const currentPage = Math.min(page, totalPages);
   const pageItems = items;
 
-  const onSearch = () => { setActiveQuery(query); setPage(1); };
+  const onSearch = () => {
+    setActiveQuery(query);
+    setPage(1);
+    updateUrl(category, query);
+  };
+
+  const onCategoryChange = (newCat: string) => {
+    setCategory(newCat);
+    setPage(1);
+    updateUrl(newCat, activeQuery);
+  };
 
   const subscribe = async () => {
     if (!email.trim()) { toast.error("ایمیل را وارد کنید."); return; }
@@ -117,32 +154,51 @@ export default function BlogPage() {
               placeholder="جستجو در مقالات..."
               className="w-full rounded-xl border border-border bg-background/60 pr-10 pl-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
+            {query && (
+              <button
+                onClick={() => { setQuery(""); setActiveQuery(""); updateUrl(category, ""); }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="پاک کردن جستجو"
+              >
+                ✕
+              </button>
+            )}
           </div>
         )}
       </PageHeader>
 
-      {/* Category filter pills */}
-      {categories.length > 1 && (
-        <div className="container mx-auto px-4 pb-4">
+      {/* Category filter pills + result count */}
+      <div className="container mx-auto px-4 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => { setCategory(""); setPage(1); }}
-              className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${!category ? "bg-gradient-brand text-white shadow-glow" : "border border-border bg-card/60 text-muted-foreground hover:border-primary/40"}`}
+              onClick={() => onCategoryChange("")}
+              className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${!category ? "bg-gradient-brand text-white shadow-glow" : "border border-border bg-card/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
             >
               همه
             </button>
             {categories.map((c) => (
               <button
                 key={c}
-                onClick={() => { setCategory(c); setPage(1); }}
-                className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${category === c ? "bg-gradient-brand text-white shadow-glow" : "border border-border bg-card/60 text-muted-foreground hover:border-primary/40"}`}
+                onClick={() => onCategoryChange(c)}
+                className={`inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-bold transition-all ${category === c ? "bg-gradient-brand text-white shadow-glow" : "border border-border bg-card/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
               >
+                <Hash className="h-3 w-3" />
                 {c}
               </button>
             ))}
           </div>
+          <div className="text-xs text-muted-foreground font-semibold">
+            {loaded && (
+              <>
+                {total.toLocaleString("fa-IR")} مقاله
+                {category && ` در دسته «${category}»`}
+                {activeQuery && ` برای «${activeQuery}»`}
+              </>
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Articles grid */}
       <section className="py-8 md:py-12">
@@ -156,30 +212,54 @@ export default function BlogPage() {
                     <div className="h-3 w-1/3 bg-muted/40 rounded" />
                     <div className="h-5 w-3/4 bg-muted/40 rounded" />
                     <div className="h-3 w-full bg-muted/40 rounded" />
+                    <div className="h-3 w-2/3 bg-muted/40 rounded" />
                   </div>
                 </div>
               ))}
             </div>
-          ) : loadError ? (
-            <p role="alert" className="text-center py-12">دریافت مقالات ناموفق بود؛ صفحه را دوباره بارگذاری کنید.</p>
           ) : pageItems.length === 0 ? (
             <div className="text-center py-20">
               <SearchX className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
               <div className="font-bold text-foreground text-lg">مقاله‌ای یافت نشد</div>
-              <p className="text-sm text-muted-foreground mt-1">عبارت دیگری جستجو کنید.</p>
+              <p className="text-sm text-muted-foreground mt-1">عبارت دیگری جستجو کنید یا فیلتر را تغییر دهید.</p>
+              {(category || activeQuery) && (
+                <button
+                  onClick={() => { onCategoryChange(""); setActiveQuery(""); setQuery(""); updateUrl("", ""); }}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-bold text-foreground hover:border-primary/40 hover:text-primary transition-all"
+                >
+                  حذف فیلترها
+                  <SearchX className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
               {pageItems.map((a, i) => (
                 <Reveal key={a.id} delay={i * 0.05} className="h-full">
                   <Link href={`/blog/${a.slug}`} className="block h-full group">
-                    <article className="h-full rounded-2xl overflow-hidden border border-border/60 bg-card/60 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-glow transition-all cursor-pointer">
+                    <article className="h-full rounded-2xl overflow-hidden border border-border/60 bg-card/60 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-glow transition-all cursor-pointer relative">
+                      {/* Featured ribbon */}
+                      {a.featured && (
+                        <div className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 rounded-full bg-amber-400/90 backdrop-blur px-2.5 py-1 text-[10px] font-black text-amber-950 shadow-glow-gold">
+                          <Sparkles className="h-3 w-3" />
+                          منتخب
+                        </div>
+                      )}
                       <div className="relative h-44 overflow-hidden bg-gradient-to-br from-primary/15 to-amber-400/10">
                         {a.coverUrl ? (
-                          <img src={a.coverUrl} alt={a.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <img
+                            src={a.coverUrl}
+                            alt={a.title}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                          />
                         ) : (
-                          <div className="font-display text-6xl text-primary/20 grid place-items-center h-full">م</div>
+                          <div className="font-display text-6xl text-primary/20 grid place-items-center h-full group-hover:scale-110 transition-transform duration-500">
+                            {a.category?.charAt(0) || "م"}
+                          </div>
                         )}
+                        {/* Gradient overlay for better text legibility */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         {a.category && (
                           <span className="absolute top-3 right-3 rounded-full bg-background/80 backdrop-blur px-3 py-1 text-xs font-bold text-primary border border-primary/20">
                             {a.category}
@@ -187,17 +267,33 @@ export default function BlogPage() {
                         )}
                       </div>
                       <div className="p-5">
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                          <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {faDate(a.publishedAt)}</span>
-                          {a.readingMinutes && <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {a.readingMinutes} دقیقه</span>}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2 flex-wrap">
+                          <span className="inline-flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5" /> {faDate(a.publishedAt)}
+                          </span>
+                          {a.readingMinutes && (
+                            <span className="inline-flex items-center gap-1">
+                              <Clock className="h-3.5 w-3.5" /> {a.readingMinutes} دقیقه
+                            </span>
+                          )}
+                          {typeof a.views === "number" && a.views > 0 && (
+                            <span className="inline-flex items-center gap-1">
+                              <Eye className="h-3.5 w-3.5" /> {a.views.toLocaleString("fa-IR")}
+                            </span>
+                          )}
                         </div>
                         <h3 className="font-display text-lg font-extrabold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
                           {a.title}
                         </h3>
                         <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{a.excerpt}</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-primary group-hover:gap-2 transition-all">
-                          ادامه مطلب <ArrowLeft className="h-4 w-4" />
-                        </span>
+                        <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between">
+                          <span className="inline-flex items-center gap-1 text-sm font-bold text-primary group-hover:gap-2 transition-all">
+                            ادامه مطلب <ArrowLeft className="h-4 w-4" />
+                          </span>
+                          {a.authorName && (
+                            <span className="text-[10px] text-muted-foreground font-semibold">{a.authorName}</span>
+                          )}
+                        </div>
                       </div>
                     </article>
                   </Link>
@@ -210,7 +306,7 @@ export default function BlogPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-10">
               <button
-                onClick={() => setPage((p) => Math.max(1, currentPage - 1))}
+                onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 200, behavior: "smooth" }); }}
                 disabled={currentPage === 1}
                 className="grid place-items-center h-10 w-10 rounded-xl border border-border hover:border-primary/40 disabled:opacity-40 transition-colors"
                 aria-label="قبلی"
@@ -220,14 +316,14 @@ export default function BlogPage() {
               {Array.from({ length: totalPages }).map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => setPage(i + 1)}
+                  onClick={() => { setPage(i + 1); window.scrollTo({ top: 200, behavior: "smooth" }); }}
                   className={`h-10 w-10 rounded-xl font-bold text-sm transition-all ${currentPage === i + 1 ? "bg-gradient-brand text-white shadow-glow" : "border border-border hover:border-primary/40"}`}
                 >
                   {(i + 1).toLocaleString("fa-IR")}
                 </button>
               ))}
               <button
-                onClick={() => setPage((p) => Math.min(totalPages, currentPage + 1))}
+                onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 200, behavior: "smooth" }); }}
                 disabled={currentPage === totalPages}
                 className="grid place-items-center h-10 w-10 rounded-xl border border-border hover:border-primary/40 disabled:opacity-40 transition-colors"
                 aria-label="بعدی"
@@ -283,3 +379,10 @@ export default function BlogPage() {
   );
 }
 
+export default function BlogPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <BlogPageInner />
+    </Suspense>
+  );
+}

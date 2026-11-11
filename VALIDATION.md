@@ -1,34 +1,9 @@
-# Validation — 2026-11-07
+# Uploaded workspace deployment — 2026-11-11
 
-Version 12 features merged onto verified commit f65f53f0e9e7785b7c85495fd1a0de3570db4e8e.
+Source: user-provided workspace TAR. Preserve its UI, mobile effects, article display, navigation, theme, back-to-top, 404 and structured data features.
 
-- Preserved authenticated, validated image uploads, realpath containment, legacy image rewrites, SVG sandboxing, stable client-only article editor, backup routes and root-scoped ignore rules.
-- Added blog pages and editable trust bar/blog settings.
-- Implemented bounded server pagination and search, stable category choices and published-only article access. Existing article API consumers still receive `items`.
-- ESLint, production Next.js build/TypeScript and shell syntax passed.
-- Disposable SQLite production runtime tests passed: fresh startup, repeated seed preserves edits and password, public pages, administrator authentication, backup integrity and missing-secret rejection.
-- Upload runtime tests passed: authenticated uploads, immediate image reads, legacy URLs, ETag, symlink/traversal rejection, invalid image and oversized request rejection, legacy SVG sandbox headers, public settings secret filtering.
-- Blog runtime tests passed: both page routes, 105 matching articles across pages without duplication, category/search filters, draft isolation, invalid and oversized limit handling.
+Fixes: restore Prisma client defaults/relations compatible with existing application and database; synchronize remark-gfm lockfile; secure image validation and serving with legacy URL rewrites; bounded server-side blog search/pagination while preserving shareable URL filters; validated admin settings; runtime sitemap with production domain fallback. Existing Docker volumes retained.
 
-No database schema, Docker volume names, bind address or production secrets changed. No live server was modified. No environment files, private keys, database contents or uploaded user files are included in this change.
+Validation: production build/TypeScript, lint and production runtime tests for authentication, data preservation, backups, uploads, legacy URLs, traversal, blog pagination and settings. Docker daemon and interactive browser checks unavailable; live AI provider not tested.
 
-Limitations: Docker is unavailable in this environment, so the Alpine image build and actual VPS health check must be verified during deployment. Interactive browser editing and live AI provider calls were not tested.
-
-## Existing VPS update
-
-Run in the existing installation directory to keep the Compose project/volumes:
-
-```bash
-cd /opt/sehat-mohaseb
-bash deploy.sh backup && git pull --ff-only && bash deploy.sh build
-docker compose ps
-curl --fail --show-error http://127.0.0.1:3001/api/public/site
-curl --fail --show-error https://sehatmohaseb.com/api/public/site
-```
-
-`build` waits for container health. Keep existing `.env.docker` and `secrets/.z-ai-config`. Do not run `docker compose down -v` or delete volumes. The backup command saves the SQLite database, not uploaded images; retain a separate backup of the uploads volume. A domain-only failure after a successful local API check requires checking DirectAdmin proxy/DNS/TLS independently.
-
-
-## Version 13 correction — 2026-11-11
-
-Restored the verified main baseline instead of importing regressions from the ZIP. Added settings payload validation and blog page-size bounds; resolve trust-bar icons only from the icon registry. deploy.sh update now requires a successful database backup before pulling. Runtime uploads/blog and deployment smoke tests rerun. Docker image and live server remain untested here.
+The TAR database is intentionally excluded: it contains users and credentials. Its 134 landing blocks, six articles and eight navigation items are not automatically imported. Existing production data stays intact. Code deployment does not transfer edits stored only in that database. Plan a separate selected-content import with a backup; never replace the live database wholesale.

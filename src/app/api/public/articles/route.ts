@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
   const where: Prisma.ArticleWhereInput = { status: "PUBLISHED" };
   if (query) where.OR = [{ title: { contains: query } }, { excerpt: { contains: query } }];
   if (category) where.category = category;
+  if (url.searchParams.get("featured") === "true") where.featured = true;
   const total = await db.article.count({ where });
   const currentPage = Math.min(page, Math.max(1, Math.ceil(total / limit)));
   const categories = await db.article.findMany({
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
     orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
     skip: (currentPage - 1) * limit,
     take: limit,
-    select: { id: true, slug: true, title: true, excerpt: true, coverUrl: true, category: true, publishedAt: true, readingMinutes: true, featured: true },
+    select: { id: true, slug: true, title: true, excerpt: true, coverUrl: true, category: true, publishedAt: true, readingMinutes: true, featured: true, authorName: true, tags: true, views: true },
   });
   return ok({ items, total, page: currentPage, categories: categories.map((item) => item.category).filter(Boolean) });
 }

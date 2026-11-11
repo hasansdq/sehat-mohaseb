@@ -12,3 +12,10 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Block admin panel from indexing
+Disallow: /sehat-ad
+Disallow: /api/admin
+
+# Sitemap
+Sitemap: /sitemap.xml
