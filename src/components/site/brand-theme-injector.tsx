@@ -9,12 +9,12 @@ import { api } from "@/lib/api-client";
 // AND logo from the settings panel without redeploying.
 export function BrandThemeInjector() {
   useEffect(() => {
-    api<{ settings: Record<string, string> }>("/api/public/site").then((r) => {
+    const refresh = () => api<{ settings: Record<string, string> }>("/api/public/site", { cache: "no-store" }).then((r) => {
       if (!r.ok || !r.data?.settings) return;
       const s = r.data.settings;
       const brand = s["site.brandColor"];
       const accent = s["site.accentColor"];
-      const logoUrl = s["site.logoUrl"];
+      const logoUrl = s["site.logoUrl"] || "/favicon.svg";
 
       const root = document.documentElement;
 
@@ -48,7 +48,7 @@ export function BrandThemeInjector() {
       if (logoUrl) {
         const KEY = "data-sm-favicon";
         // remove any previously-injected favicon links
-        document.querySelectorAll(`link[${KEY}]`).forEach((el) => el.remove());
+        document.querySelectorAll(`link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]`).forEach((el) => el.remove());
         // build the absolute URL (favicon needs an absolute URL)
         let abs = logoUrl;
         if (logoUrl.startsWith("/")) {
@@ -57,7 +57,7 @@ export function BrandThemeInjector() {
         // Standard icon (32x32 fallback)
         const ico = document.createElement("link");
         ico.setAttribute("rel", "icon");
-        ico.setAttribute("type", "image/svg+xml");
+        // Let the browser use the actual image MIME type (PNG/JPEG/WebP/SVG).
         ico.setAttribute("href", abs);
         ico.setAttribute(KEY, "1");
         document.head.appendChild(ico);
@@ -70,6 +70,10 @@ export function BrandThemeInjector() {
         // msapplication TileColor — keep as-is from layout viewport
       }
     });
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
   }, []);
   return null;
 }
+

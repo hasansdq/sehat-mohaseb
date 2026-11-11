@@ -37,6 +37,8 @@ export function Navbar() {
   const [trustItems, setTrustItems] = useState<{ icon: any; text: string }[]>(TRUST_ITEMS);
   const [trustEnabled, setTrustEnabled] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [headerPhone, setHeaderPhone] = useState("۰۲۱-۹۱۰۱۰۰۱۰");
+  const phoneHref = "tel:" + headerPhone.replace(/[۰-۹]/g, (c) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g, (c) => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))).replace(/[^0-9+]/g, "");
   const [siteTitle, setSiteTitle] = useState<string>("صحت محاسب");
   const [siteTagline, setSiteTagline] = useState<string>("نماینده رسمی سپیدار و دشت");
   const pathname = usePathname();
@@ -44,11 +46,12 @@ export function Navbar() {
 
   // Load trust bar items + site logo/title from admin settings
   useEffect(() => {
-    api<{ settings: Record<string, string> }>("/api/public/site").then((r) => {
+    const refresh = () => api<{ settings: Record<string, string> }>("/api/public/site", { cache: "no-store" }).then((r) => {
       if (!r.ok || !r.data?.settings) return;
       const s = r.data.settings;
       setTrustEnabled(s["trustbar.enabled"] === "true");
-      if (s["site.logoUrl"]) setLogoUrl(s["site.logoUrl"]);
+      setLogoUrl(s["site.logoUrl"] || "");
+      setHeaderPhone(s["site.headerPhone"] ?? "۰۲۱-۹۱۰۱۰۰۱۰");
       if (s["site.title"]) setSiteTitle(s["site.title"]);
       if (s["site.tagline"]) setSiteTagline(s["site.tagline"]);
       const items: { icon: any; text: string }[] = [];
@@ -62,6 +65,9 @@ export function Navbar() {
       }
       setTrustItems(items);
     });
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
   }, []);
 
   useEffect(() => {
@@ -226,14 +232,14 @@ export function Navbar() {
           {/* Actions */}
           <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
             <a
-              href="tel:+982191010010"
+              href={phoneHref}
               className="hidden xl:flex items-center gap-1.5 text-sm font-bold text-foreground/80 hover:text-primary transition-colors px-2.5 py-1.5 rounded-lg hover:bg-primary/5"
             >
               <span className="relative grid place-items-center h-7 w-7 rounded-lg bg-primary/10 text-primary">
                 <Phone className="h-3.5 w-3.5" />
                 <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 animate-pulse-soft" />
               </span>
-              <span dir="ltr">۰۲۱-۹۱۰۱۰۰۱۰</span>
+              <span dir="ltr">{headerPhone}</span>
             </a>
             <ThemeToggle />
             {user ? (
@@ -311,8 +317,8 @@ export function Navbar() {
                   </Link>
                 );
               })}
-              <a href="tel:+982191010010" className="px-4 py-3 rounded-xl text-sm font-bold text-primary flex items-center gap-2 border-t border-border/40 mt-1">
-                <Phone className="h-4 w-4" /> <span dir="ltr">۰۲۱-۹۱۰۱۰۰۱۰</span>
+              <a href={phoneHref} className="px-4 py-3 rounded-xl text-sm font-bold text-primary flex items-center gap-2 border-t border-border/40 mt-1">
+                <Phone className="h-4 w-4" /> <span dir="ltr">{headerPhone}</span>
               </a>
             </div>
           </nav>
@@ -321,3 +327,4 @@ export function Navbar() {
     </header>
   );
 }
+

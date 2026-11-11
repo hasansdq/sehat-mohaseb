@@ -114,6 +114,21 @@ with tempfile.TemporaryDirectory(prefix='sehat-upload-test-') as tmp:
         assert headers['X-Content-Type-Options'] == 'nosniff'
         assert request(url, headers={'If-None-Match':headers['ETag']})[0] == 304
         assert request(url.replace('/api/uploads/', '/uploads/'))[0] == 200
+        for logo in [url, ""]:
+            items = {'site.logoUrl': {'value': logo, 'group': 'general'},
+                     'site.headerPhone': {'value': '۰۳۴-۳۴۲۶۶۷۰۰', 'group': 'general'}}
+            req = urllib.request.Request(f'http://127.0.0.1:{port}/api/admin/settings',
+                data=json.dumps({'items': items}).encode(), method='PUT',
+                headers={'Cookie': cookie, 'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req) as response: assert response.status == 200
+            for endpoint in ['/api/public/site', '/api/admin/settings']:
+                status, _, payload = request(endpoint, cookie=cookie)
+                assert status == 200
+                settings = json.loads(payload)['data']['settings']
+                assert settings['site.logoUrl'] == logo
+                assert settings['site.headerPhone'] == '۰۳۴-۳۴۲۶۶۷۰۰'
+        print('PASS: uploaded logo save/read/remove and header phone persistence')
+
         # Add a legacy image after server startup; the rewrite must serve it immediately.
         legacy = uploads / ('legacy-' + secrets.token_hex(8) + '.png')
         legacy.write_bytes(png); created.append(legacy)
@@ -146,4 +161,5 @@ with tempfile.TemporaryDirectory(prefix='sehat-upload-test-') as tmp:
     finally:
         server.terminate(); server.wait(timeout=10); log.close()
         for p in created: p.unlink(missing_ok=True)
+
 

@@ -10,6 +10,7 @@ const DEFAULTS: Record<string, string> = {
   "site.title": "موسسه حسابداری صحت محاسب",
   "site.tagline": "نماینده رسمی نرم‌افزار سپیدار و دشت",
   "site.description": "خدمات حرفه‌ای حسابداری، مشاوره مالی و مالیاتی",
+  "site.headerPhone": "۰۲۱-۹۱۰۱۰۰۱۰",
   "site.logoUrl": "/favicon.svg",
   "site.brandColor": "#10a37f",
   "site.accentColor": "#e8b94a",
@@ -166,3 +167,4 @@ function inferGroup(key: string): string {
   if (key.startsWith("backup.")) return "backup";
   return "general";
 }
+

@@ -27,6 +27,8 @@ const TABS = [
 const KEY_GROUP: Record<string, string> = {};
 const KEY_LABELS: Record<string, { label: string; type?: "text" | "textarea" | "boolean"; group: string; hint?: string; ltr?: boolean }> = {
   // general
+  "site.logoUrl": { label: "لوگوی سایت", group: "general" },
+  "site.headerPhone": { label: "شماره تلفن داخل هدر", group: "general", ltr: true, hint: "در باکس هدر و منوی موبایل نمایش داده می‌شود." },
   "site.title": { label: "عنوان سایت", group: "general" },
   "site.tagline": { label: "شعار", group: "general" },
   "site.description": { label: "توضیحات کوتاه", group: "general", type: "textarea" },
@@ -103,6 +105,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -115,6 +118,7 @@ export default function SettingsPage() {
   const keysForTab = Object.entries(KEY_LABELS).filter(([, meta]) => meta.group === tab).map(([k]) => k);
 
   const save = async () => {
+    if (logoUploading) return;
     setSaving(true);
     const items: Record<string, { value: string; group: string }> = {};
     for (const k of keysForTab) {
@@ -128,7 +132,7 @@ export default function SettingsPage() {
   return (
     <div>
       <PageHeader title="تنظیمات" desc="مدیریت کامل تنظیمات سایت و سیستم" action={
-        <Button onClick={save} disabled={saving || loading} className="bg-gradient-brand text-white shadow-glow rounded-xl">
+        <Button onClick={save} disabled={saving || loading || logoUploading} className="bg-gradient-brand text-white shadow-glow rounded-xl">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 ml-1" />}
           {saving ? "در حال ذخیره..." : "ذخیره تنظیمات"}
         </Button>
@@ -167,13 +171,14 @@ export default function SettingsPage() {
                     {/* ===== Logo uploader (only on general tab) ===== */}
                     {tab === "general" && (
                       <LogoUploader
+                        onUploadingChange={setLogoUploading}
                         value={settings["site.logoUrl"] || ""}
-                        onChange={(url) => setSettings({ ...settings, "site.logoUrl": url })}
+                        onChange={(url) => setSettings((current) => ({ ...current, "site.logoUrl": url }))}
                       />
                     )}
 
                     <div className="grid sm:grid-cols-2 gap-4">
-                      {keysForTab.map((k) => {
+                      {keysForTab.filter((k) => k !== "site.logoUrl").map((k) => {
                         const meta = KEY_LABELS[k];
                         const val = settings[k] ?? "";
                         if (meta.type === "boolean") {
@@ -274,22 +279,23 @@ function AdminCredentials() {
 //   used both in the navbar AND as the site favicon (injected at
 //   runtime via BrandFaviconInjector).
 // ============================================================
-function LogoUploader({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+function LogoUploader({ value, onChange, onUploadingChange }: { value: string; onChange: (url: string) => void; onUploadingChange: (busy: boolean) => void }) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const doUpload = async (file: File) => {
     // Client-side validation
-    if (!file.type.startsWith("image/")) {
-      toast.error("فقط فایل تصویری مجاز است.");
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+      toast.error("فقط PNG، JPG، WebP و GIF مجاز است.");
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("حجم تصویر باید کمتر از ۸ مگابایت باشد.");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("حجم تصویر باید کمتر از ۵ مگابایت باشد.");
       return;
     }
     setUploading(true);
+    onUploadingChange(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -306,6 +312,7 @@ function LogoUploader({ value, onChange }: { value: string; onChange: (url: stri
       toast.error("خطا در ارتباط با سرور.");
     }
     setUploading(false);
+    onUploadingChange(false);
   };
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -376,12 +383,12 @@ function LogoUploader({ value, onChange }: { value: string; onChange: (url: stri
               <Upload className="h-7 w-7" />
               <div>
                 <div className="text-sm font-bold text-foreground">کلیک کنید یا فایل را بکشید</div>
-                <div className="text-xs mt-1">PNG, SVG, WebP, JPG — حداکثر ۸MB</div>
+                <div className="text-xs mt-1">PNG, GIF, WebP, JPG — حداکثر ۵MB</div>
                 <div className="text-[11px] mt-1 text-muted-foreground/70">بهتر است تصویر مربع و شفاف باشد</div>
               </div>
             </div>
           )}
-          <input ref={inputRef} type="file" accept="image/*" onChange={onPick} className="hidden" />
+          <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onPick} className="hidden" />
         </div>
 
         {/* Info / actions */}
@@ -437,3 +444,4 @@ function LogoUploader({ value, onChange }: { value: string; onChange: (url: stri
     </div>
   );
 }
+
