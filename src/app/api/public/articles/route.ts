@@ -44,3 +44,4 @@ export async function GET(req: NextRequest) {
   });
   return ok({ items, total, page: currentPage, categories: categories.map((item) => item.category).filter(Boolean) });
 }
+

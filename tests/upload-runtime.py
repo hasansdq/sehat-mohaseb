@@ -92,6 +92,18 @@ with tempfile.TemporaryDirectory(prefix='sehat-upload-test-') as tmp:
         status, headers, data = request('/api/admin/login', json.dumps({'username':'uploadtest','password':password}).encode())
         assert status == 200, (status, data)
         cookie = headers['Set-Cookie'].split(';')[0]
+        for items, expected in [({'blog.postsPerPage': {'value': '0'}}, 422),
+                                ({'site.title': None}, 422),
+                                ({'blog.postsPerPage': {'value': '12', 'group': 'blog'}}, 200)]:
+            req = urllib.request.Request(f'http://127.0.0.1:{port}/api/admin/settings',
+                data=json.dumps({'items': items}).encode(), method='PUT',
+                headers={'Cookie': cookie, 'Content-Type': 'application/json'})
+            try:
+                with urllib.request.urlopen(req) as response: status = response.status
+            except urllib.error.HTTPError as response: status = response.code
+            assert status == expected, (items, status)
+        print('PASS: settings payload and page-size validation')
+
         status, _, data = request('/api/admin/upload', body, cookie, mime)
         assert status == 200, (status, data)
         url = json.loads(data)['data']['url']
@@ -134,3 +146,4 @@ with tempfile.TemporaryDirectory(prefix='sehat-upload-test-') as tmp:
     finally:
         server.terminate(); server.wait(timeout=10); log.close()
         for p in created: p.unlink(missing_ok=True)
+

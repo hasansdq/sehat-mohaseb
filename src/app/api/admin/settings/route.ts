@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { NextRequest } from "next/server";
 import { getAllSettings, setSettings, setSetting, getSettingsByGroup } from "@/lib/settings";
 import { db } from "@/lib/db";
@@ -24,8 +25,13 @@ export async function PUT(req: NextRequest) {
   if (!(await requireAdmin(req))) return Response.json({ ok: false, error: "غیرمجاز" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
   // body.items: { key: { value, group? } }
-  const items = body.items as Record<string, { value: string; group?: string }>;
-  if (!items || typeof items !== "object") return fail("داده نامعتبر.", 422);
+  const parsed = z.record(z.string().min(1).max(120), z.object({
+    value: z.string().max(50000), group: z.string().max(80).optional(),
+  })).safeParse(body?.items);
+  if (!parsed.success || Object.keys(parsed.data).length > 200) return fail("داده نامعتبر.", 422);
+  const items = parsed.data;
+  if (items["blog.postsPerPage"] && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(items["blog.postsPerPage"].value))
+    return fail("تعداد مقالات باید عددی بین ۱ و ۱۰۰ باشد.", 422);
 
   // handle admin password change specially
   const filtered: Record<string, { value: string; group?: string }> = {};

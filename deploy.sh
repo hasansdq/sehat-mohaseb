@@ -6,7 +6,7 @@ case "${1:-help}" in
   build|start|update)
     test -f .env.docker || { echo "Copy .env.docker.example to .env.docker and set secrets" >&2; exit 1; }
     test -f secrets/.z-ai-config || { echo "Create secrets/.z-ai-config with your AI connection settings" >&2; exit 1; }
-    if [ "${1}" = update ]; then git pull --ff-only; fi
+    if [ "${1}" = update ]; then bash "$0" backup; git pull --ff-only; fi
     docker compose config --quiet
     docker compose up -d --build --wait --wait-timeout 180
     ;;

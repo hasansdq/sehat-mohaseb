@@ -27,3 +27,8 @@ curl --fail --show-error https://sehatmohaseb.com/api/public/site
 ```
 
 `build` waits for container health. Keep existing `.env.docker` and `secrets/.z-ai-config`. Do not run `docker compose down -v` or delete volumes. The backup command saves the SQLite database, not uploaded images; retain a separate backup of the uploads volume. A domain-only failure after a successful local API check requires checking DirectAdmin proxy/DNS/TLS independently.
+
+
+## Version 13 correction — 2026-11-11
+
+Restored the verified main baseline instead of importing regressions from the ZIP. Added settings payload validation and blog page-size bounds; resolve trust-bar icons only from the icon registry. deploy.sh update now requires a successful database backup before pulling. Runtime uploads/blog and deployment smoke tests rerun. Docker image and live server remain untested here.

@@ -50,7 +50,7 @@ export function Navbar() {
         const text = s[`trustbar.item${i}_text`];
         if (text && text.trim()) {
           const iconStr = s[`trustbar.item${i}_icon`] || "BadgeCheck";
-          const icon = (Icons as any)[iconStr] || Icons.BadgeCheck;
+          const icon = (Icons.icons as any)[iconStr] || Icons.BadgeCheck;
           items.push({ icon, text: text.trim() });
         }
       }
